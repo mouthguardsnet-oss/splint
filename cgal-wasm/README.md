@@ -6,10 +6,11 @@ The goal of this first module is deliberately small:
 
 - load the STL triangles into `CGAL::Surface_mesh`
 - remove degenerate faces and stitch simple borders
-- report diagnostics such as invalid faces, open borders and self-intersections
+- report diagnostics such as invalid faces and open borders
 - project the drawn margin points back onto the real mesh surface using a CGAL AABB tree
 
 Once this is reliable on real scans, the next step is generating the splint surface from the repaired mesh and projected margin.
+Self-intersection diagnostics are intentionally left out of the first WASM build to avoid pulling heavier CGAL exact-arithmetic packages before the basic bridge works.
 
 ## Why this is separate
 
