@@ -5,7 +5,6 @@
 #include <CGAL/AABB_tree.h>
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Polygon_mesh_processing/repair.h>
-#include <CGAL/Polygon_mesh_processing/self_intersections.h>
 #include <CGAL/Surface_mesh.h>
 
 #include <exception>
@@ -97,7 +96,7 @@ int cgal_process(
     PMP::stitch_borders(mesh);
 
     g_border_halfedges = count_border_halfedges(mesh);
-    g_self_intersections = PMP::does_self_intersect(mesh) ? 1 : 0;
+    g_self_intersections = -1;
 
     if (mesh.number_of_faces() == 0) {
       g_report = "CGAL created no valid faces from the STL mesh.";
@@ -123,7 +122,7 @@ int cgal_process(
         << ", faces_after_repair=" << mesh.number_of_faces()
         << ", invalid_faces=" << g_invalid_faces
         << ", border_halfedges=" << g_border_halfedges
-        << ", self_intersections=" << g_self_intersections
+        << ", self_intersections=not_checked"
         << ", projected_margin_points=" << margin_points;
     g_report = out.str();
     return 1;
