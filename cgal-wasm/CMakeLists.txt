@@ -5,12 +5,15 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-find_package(CGAL REQUIRED)
+if(NOT DEFINED CGAL_INCLUDE_DIR)
+  message(FATAL_ERROR "Set CGAL_INCLUDE_DIR to the CGAL source include directory.")
+endif()
 
 add_executable(cgal_splint src/cgal_splint.cpp)
-target_link_libraries(cgal_splint PRIVATE CGAL::CGAL)
+target_include_directories(cgal_splint PRIVATE "${CGAL_INCLUDE_DIR}")
 
 target_compile_definitions(cgal_splint PRIVATE
+  CGAL_HEADER_ONLY=1
   CGAL_DISABLE_ROUNDING_MATH_CHECK=ON
 )
 
