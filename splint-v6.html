@@ -955,6 +955,63 @@ function pointInPolygon2D(pt, poly) {
     return inside;
 }
 
+function fillSelectedTriangleHoles(pos, selected) {
+    const triCount = selected.length;
+    const prec = 1000;
+    const maxHoleTriangles = Math.max(200, Math.floor(triCount * 0.12));
+    const edgeMap = new Map();
+    const triEdges = Array.from({ length: triCount }, () => []);
+
+    function vKey(i) {
+        return `${Math.round(pos[i] * prec)},${Math.round(pos[i + 1] * prec)},${Math.round(pos[i + 2] * prec)}`;
+    }
+
+    for (let t = 0; t < triCount; t++) {
+        const b = t * 9;
+        const keys = [vKey(b), vKey(b + 3), vKey(b + 6)];
+        for (const [a, c] of [[0, 1], [1, 2], [2, 0]]) {
+            const e = keys[a] < keys[c] ? `${keys[a]}|${keys[c]}` : `${keys[c]}|${keys[a]}`;
+            triEdges[t].push(e);
+            if (!edgeMap.has(e)) edgeMap.set(e, []);
+            edgeMap.get(e).push(t);
+        }
+    }
+
+    const seen = new Uint8Array(triCount);
+    let filled = 0;
+    for (let start = 0; start < triCount; start++) {
+        if (selected[start] || seen[start]) continue;
+
+        const stack = [start];
+        const comp = [];
+        let touchesMeshBoundary = false;
+        seen[start] = 1;
+
+        while (stack.length) {
+            const t = stack.pop();
+            comp.push(t);
+
+            for (const e of triEdges[t]) {
+                const neighbors = edgeMap.get(e) || [];
+                if (neighbors.length < 2) touchesMeshBoundary = true;
+                for (const nt of neighbors) {
+                    if (!selected[nt] && !seen[nt]) {
+                        seen[nt] = 1;
+                        stack.push(nt);
+                    }
+                }
+            }
+        }
+
+        if (!touchesMeshBoundary && comp.length <= maxHoleTriangles) {
+            for (const t of comp) selected[t] = 1;
+            filled += comp.length;
+        }
+    }
+
+    return filled;
+}
+
 
 function selectTrianglesInsideMargin(mesh) {
 
@@ -1071,16 +1128,265 @@ function smoothMesh(posArr, iterations, lambda) {
   return out;
 }
 
-window.generateSplint = function() {
+function keepLargestMeshComponent(posArr){
+  const triCount=posArr.length/9;
+  if(triCount<2)return posArr;
+
+  const prec=1000, vMap=new Map(), triVerts=[], vertTris=[];
+  function keyAt(i){
+    return `${Math.round(posArr[i]*prec)},${Math.round(posArr[i+1]*prec)},${Math.round(posArr[i+2]*prec)}`;
+  }
+  function getVid(i,t){
+    const k=keyAt(i);
+    let id=vMap.get(k);
+    if(id===undefined){
+      id=vMap.size;
+      vMap.set(k,id);
+      vertTris[id]=[];
+    }
+    vertTris[id].push(t);
+    return id;
+  }
+
+  for(let t=0;t<triCount;t++){
+    const b=t*9;
+    triVerts[t]=[getVid(b,t),getVid(b+3,t),getVid(b+6,t)];
+  }
+
+  const seen=new Uint8Array(triCount);
+  let best=[];
+  for(let start=0;start<triCount;start++){
+    if(seen[start])continue;
+    const stack=[start], comp=[];
+    seen[start]=1;
+    while(stack.length){
+      const t=stack.pop();
+      comp.push(t);
+      for(const v of triVerts[t]){
+        for(const nt of vertTris[v]){
+          if(!seen[nt]){
+            seen[nt]=1;
+            stack.push(nt);
+          }
+        }
+      }
+    }
+    if(comp.length>best.length)best=comp;
+  }
+
+  if(best.length===triCount)return posArr;
+  const out=new Float32Array(best.length*9);
+  for(let i=0;i<best.length;i++){
+    out.set(posArr.subarray(best[i]*9,best[i]*9+9),i*9);
+  }
+  return out;
+}
+
+const CGAL_MODULE_PATHS=[
+  './cgal-splint.js',
+  './cgal-wasm/dist/cgal-splint.js',
+  './cgal-wasm/cgal-splint.js'
+];
+let cgalModulePromise=null;
+
+async function loadCgalModule(){
+  if(cgalModulePromise)return cgalModulePromise;
+  cgalModulePromise=(async()=>{
+    let lastErr=null;
+    for(const modulePath of CGAL_MODULE_PATHS){
+      try{
+        const mod=await import(modulePath);
+        const factory=mod.default||mod;
+        const base=modulePath.slice(0,modulePath.lastIndexOf('/')+1);
+        return await factory({locateFile:path=>path.endsWith('.wasm')?base+path:path});
+      }catch(e){lastErr=e;}
+    }
+    throw lastErr||new Error('CGAL WASM module was not found.');
+  })();
+  return cgalModulePromise;
+}
+
+function buildIndexedCgalInput(mesh){
+  const geo=mesh.geometry.index?mesh.geometry.toNonIndexed():mesh.geometry;
+  const src=geo.getAttribute('position').array;
+  const verts=[];
+  const indices=new Uint32Array(src.length/3);
+  const map=new Map();
+  const prec=100000;
+  for(let i=0;i<src.length;i+=3){
+    const x=src[i],y=src[i+1],z=src[i+2];
+    const key=`${Math.round(x*prec)},${Math.round(y*prec)},${Math.round(z*prec)}`;
+    let idx=map.get(key);
+    if(idx===undefined){
+      idx=verts.length/3;
+      map.set(key,idx);
+      verts.push(x,y,z);
+    }
+    indices[i/3]=idx;
+  }
+  return {positions:new Float64Array(verts),indices};
+}
+
+async function runCgalPreflight(targetMesh){
+  let cgal;
+  try{
+    cgal=await loadCgalModule();
+  }catch(e){
+    setInfo('CGAL WASM zatiaľ nie je načítaný. Pokračujem pôvodným generovaním.');
+    return false;
+  }
+
+  const input=buildIndexedCgalInput(targetMesh);
+  const margin=new Float64Array(mPts.length*3);
+  targetMesh.updateMatrixWorld(true);
+  mGroup.updateMatrixWorld(true);
+  for(let i=0;i<mPts.length;i++){
+    const local=targetMesh.worldToLocal(mGroup.localToWorld(mPts[i].clone()));
+    margin[i*3]=local.x;
+    margin[i*3+1]=local.y;
+    margin[i*3+2]=local.z;
+  }
+
+  const posPtr=cgal._malloc(input.positions.byteLength);
+  const idxPtr=cgal._malloc(input.indices.byteLength);
+  const marginPtr=cgal._malloc(margin.byteLength);
+  try{
+    cgal.HEAPF64.set(input.positions,posPtr/8);
+    cgal.HEAPU32.set(input.indices,idxPtr/4);
+    cgal.HEAPF64.set(margin,marginPtr/8);
+
+    const ok=cgal._cgal_process(posPtr,input.positions.length,idxPtr,input.indices.length,marginPtr,margin.length);
+    const report=cgal.UTF8ToString(cgal._cgal_get_report_ptr());
+    if(!ok){
+      setInfo(`CGAL kontrola zlyhala: ${report}. Pokračujem pôvodným generovaním.`);
+      return false;
+    }
+
+    const projectedCount=cgal._cgal_get_projected_count();
+    const projectedPtr=cgal._cgal_get_projected_ptr();
+    if(projectedPtr&&projectedCount===mPts.length*3){
+      const projected=new Float64Array(cgal.HEAPF64.buffer,projectedPtr,projectedCount).slice();
+      for(let i=0;i<mPts.length;i++){
+        const meshLocal=new THREE.Vector3(projected[i*3],projected[i*3+1],projected[i*3+2]);
+        const marginLocal=mGroup.worldToLocal(targetMesh.localToWorld(meshLocal));
+        mPts[i].copy(marginLocal);
+        if(mSpheres[i])mSpheres[i].position.copy(marginLocal);
+      }
+      updLine();
+    }
+
+    setInfo(`CGAL OK: ${report}`);
+    return true;
+  }catch(e){
+    setInfo(`CGAL chyba: ${e.message||e}. Pokračujem pôvodným generovaním.`);
+    return false;
+  }finally{
+    cgal._free(posPtr);
+    cgal._free(idxPtr);
+    cgal._free(marginPtr);
+  }
+}
+
+async function runCgalSplintGenerator(targetMesh, offsetVal, thickVal){
+  let cgal;
+  try{
+    cgal=await loadCgalModule();
+  }catch(e){
+    return false;
+  }
+  if(!cgal._cgal_generate_splint||!cgal._cgal_get_generated_positions_ptr||!cgal._cgal_get_generated_positions_count){
+    return false;
+  }
+
+  const input=buildIndexedCgalInput(targetMesh);
+  const margin=new Float64Array(mPts.length*3);
+  targetMesh.updateMatrixWorld(true);
+  mGroup.updateMatrixWorld(true);
+  for(let i=0;i<mPts.length;i++){
+    const local=targetMesh.worldToLocal(mGroup.localToWorld(mPts[i].clone()));
+    margin[i*3]=local.x;
+    margin[i*3+1]=local.y;
+    margin[i*3+2]=local.z;
+  }
+
+  const posPtr=cgal._malloc(input.positions.byteLength);
+  const idxPtr=cgal._malloc(input.indices.byteLength);
+  const marginPtr=cgal._malloc(margin.byteLength);
+  try{
+    cgal.HEAPF64.set(input.positions,posPtr/8);
+    cgal.HEAPU32.set(input.indices,idxPtr/4);
+    cgal.HEAPF64.set(margin,marginPtr/8);
+
+    const ok=cgal._cgal_generate_splint(
+      posPtr,input.positions.length,
+      idxPtr,input.indices.length,
+      marginPtr,margin.length,
+      offsetVal,thickVal,0
+    );
+    const report=cgal.UTF8ToString(cgal._cgal_get_report_ptr());
+    if(!ok){
+      setInfo(`CGAL generator zlyhal: ${report}. Skusam povodny generator.`);
+      return false;
+    }
+
+    const count=cgal._cgal_get_generated_positions_count();
+    const ptr=cgal._cgal_get_generated_positions_ptr();
+    if(!ptr||count<9){
+      setInfo('CGAL generator nevratil geometriu. Skusam povodny generator.');
+      return false;
+    }
+
+    const generated=new Float64Array(cgal.HEAPF64.buffer,ptr,count).slice();
+    const out=new Float32Array(generated.length);
+    for(let i=0;i<generated.length;i++)out[i]=generated[i];
+
+    const splintGeo=new THREE.BufferGeometry();
+    splintGeo.setAttribute('position',new THREE.Float32BufferAttribute(out,3));
+    splintGeo.computeVertexNormals();
+
+    if(splintMesh){pivot.remove(splintMesh);splintMesh.geometry.dispose();splintMesh.material.dispose();splintMesh=null;}
+    splintMesh=new THREE.Mesh(splintGeo,new THREE.MeshPhongMaterial({
+      color:0x00aaff,specular:0x224466,shininess:70,
+      transparent:false,opacity:1,
+      side:THREE.DoubleSide,depthWrite:true
+    }));
+    setOpacity(splintMesh,+document.getElementById('ops').value/100);
+    pivot.add(splintMesh);
+
+    document.getElementById('btn-export').style.display='flex';
+    document.getElementById('splintControl').style.display='flex';
+    document.getElementById('ctrl-panel').style.display='block';
+    updateWorkflowProgress();
+    setInfo(`CGAL dlaha OK: ${report}`);
+    return true;
+  }catch(e){
+    setInfo(`CGAL generator chyba: ${e.message||e}. Skusam povodny generator.`);
+    return false;
+  }finally{
+    cgal._free(posPtr);
+    cgal._free(idxPtr);
+    cgal._free(marginPtr);
+  }
+}
+
+window.generateSplint = async function() {
   if (!mClosed || mPts.length < 3) { alert("Najprv nakresli a uzavri margin líniu."); return; }
   const targetMesh = uM || lM;
   if (!targetMesh) { alert("Musíš mať aspoň jeden model."); return; }
   setInfo("Generujem 3D dlahu…");
 
+  setInfo("Kontrolujem sken cez CGAL...");
+  await runCgalPreflight(targetMesh);
+  setInfo("Generujem 3D dlahu...");
+
   const offsetVal = parseFloat(document.getElementById('offset').value) || 0.2;
   const thickVal  = parseFloat(document.getElementById('thick').value)  || 2.0;
 
   // 1. Non-indexed kópia
+  setInfo("Generujem dlahu cez CGAL...");
+  if(await runCgalSplintGenerator(targetMesh, offsetVal, thickVal)) return;
+  setInfo("CGAL generator nie je dostupny, skusam povodny JS generator...");
+
   const workGeo = targetMesh.geometry.toNonIndexed();
   workGeo.computeVertexNormals();
   const pos = workGeo.getAttribute('position').array;
@@ -1096,6 +1402,8 @@ window.generateSplint = function() {
     const cx=(pos[i]+pos[i+3]+pos[i+6])/3,cy=(pos[i+1]+pos[i+4]+pos[i+7])/3,cz=(pos[i+2]+pos[i+5]+pos[i+8])/3;
     if(pointInPolygon2D(projectToPlane(new THREE.Vector3(cx,cy,cz),plane.center,plane.xAxis,plane.yAxis),poly2D)) selected[t]=1;
   }
+  const filledHoleTriangles = fillSelectedTriangleHoles(pos, selected);
+  if(filledHoleTriangles>0) console.log('Filled selected triangle holes:', filledHoleTriangles);
   let selCount=0; for(let i=0;i<triCount;i++) if(selected[i]) selCount++;
   if(selCount===0){alert("Žiadne trojuholníky nie sú vnútri línie.");return;}
 
@@ -1151,7 +1459,8 @@ window.generateSplint = function() {
   if(out.length===0){alert("Generovanie zlyhalo.");return;}
 
   // 7. Laplacian smoothing — hladké okraje (5 iterácií)
-  const smoothed = smoothMesh(new Float32Array(out), 5, 0.45);
+  const largestComponent = keepLargestMeshComponent(new Float32Array(out));
+  const smoothed = smoothMesh(largestComponent, 5, 0.45);
 
   // 8. Vytvor mesh
   const splintGeo=new THREE.BufferGeometry();
