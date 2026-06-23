@@ -1,0 +1,1455 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dental Splint Workflow</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:#0d1117;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#ccc}
+#app{display:flex;height:100vh}
+
+/* ── Sidebar ── */
+#sb{width:300px;flex-shrink:0;background:#131923;border-right:1px solid #1e2a3a;display:flex;flex-direction:column;overflow-y:auto}
+.sb-sec{padding:9px 10px 8px;border-bottom:1px solid #1a2330}
+.sb-h{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#4a5a70;margin-bottom:7px}
+
+
+#sb{background:linear-gradient(180deg,#111827 0%,#0f1722 100%)}
+.workflow-head{padding:14px 12px 10px;border-bottom:1px solid #1f2d42;background:radial-gradient(circle at top left,rgba(58,123,213,.18),transparent 45%),#111827;position:sticky;top:0;z-index:20}
+.wf-kicker{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#51677f;font-weight:800;margin-bottom:4px}
+.wf-title{font-size:18px;line-height:1.15;color:#eef5ff;font-weight:800;margin-bottom:4px}
+.wf-sub{font-size:11px;line-height:1.35;color:#728399;margin-bottom:12px}
+.workflow-topbar{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:40;padding:8px 10px;border-radius:16px;background:rgba(10,16,25,.82);backdrop-filter:blur(10px);box-shadow:0 14px 28px rgba(0,0,0,.28)}
+.wf-steps{display:flex;gap:8px;align-items:stretch;justify-content:center}
+.wf-step{border:1px solid #26364c;background:#0c1420;color:#6f8198;border-radius:12px;min-width:84px;min-height:58px;padding:7px 8px;cursor:pointer;text-align:center;transition:all .15s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.wf-step:hover{background:#142033;color:#b8c7da;border-color:#355071}
+.wf-step-num{width:24px;height:24px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;background:#1b2838;color:#8ca0b8;font-size:10px;font-weight:800}
+.wf-step-num svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.wf-step-label{font-size:8.5px;font-weight:700;letter-spacing:.02em;white-space:nowrap}
+.wf-step.active{background:linear-gradient(180deg,#12345a,#10263f);border-color:#3c82c4;color:#eaf5ff;box-shadow:0 0 0 1px rgba(74,144,226,.16),0 8px 22px rgba(0,0,0,.22)}
+.wf-step.active .wf-step-num{background:#4aa3ff;color:#06101d}
+.wf-step.done{border-color:#1a6a45;color:#6ee7ad;background:#0b1d18}
+.wf-step.done .wf-step-num{background:#1a6a45;color:#d9ffe9}
+.wf-status{border:1px solid #26364c;background:rgba(8,13,22,.78);border-radius:12px;padding:9px 10px;min-height:54px}
+.wf-status-title{font-size:12px;color:#dce8f7;font-weight:800;margin-bottom:3px}
+.wf-status-text{font-size:10.5px;line-height:1.4;color:#7f91a8}
+.step-section{display:none;padding:12px 12px 10px;border-bottom:1px solid #1a2330;animation:stepIn .16s ease-out}
+.step-section.active{display:block;flex:1;overflow-y:auto}
+@keyframes stepIn{from{opacity:.55;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.step-section .sb-h{font-size:10px;color:#7f91a8;margin-bottom:9px}
+.step-nav{padding:10px 12px;border-top:1px solid #223047;background:#0d1420;display:flex;gap:8px;position:sticky;bottom:0;z-index:15}
+.step-nav button{flex:1;border:1px solid #2a3a50;border-radius:10px;background:#111c2b;color:#91a2b8;padding:8px 10px;font-size:11px;font-weight:700;cursor:pointer}
+.step-nav button:hover{background:#17263a;color:#d6e6f7}
+.step-nav button.primary{background:#1d5f96;border-color:#3487d2;color:#fff}
+.step-nav button:disabled{opacity:.35;cursor:not-allowed}
+.mode-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid #26364c;background:#0d1420;border-radius:999px;color:#7e94ac;font-size:10px;padding:3px 7px;margin-bottom:8px}
+#workflow-compact-help{margin-top:8px;font-size:10px;line-height:1.45;color:#566c83}
+@media(max-width:760px){#app{flex-direction:column}#sb{width:100%;height:44vh;border-right:0;border-bottom:1px solid #1e2a3a}#ca{height:56vh}.workflow-topbar{width:calc(100% - 16px);padding:6px 8px}.wf-steps{gap:4px}.wf-step{min-width:0;flex:1;padding:6px 4px}.wf-step-label{font-size:8px}}
+
+/* Upload zones */
+.dz{border:1px dashed #2a3a50;border-radius:7px;padding:8px;cursor:pointer;background:#0d1420;transition:all .15s;margin-bottom:5px;display:flex;align-items:center;gap:7px}
+.dz:last-of-type{margin-bottom:0}
+.dz:hover{background:#141e30;border-color:#3a5a70}
+.dz.lu{border-style:solid;border-color:#1a6a45;background:#0a1f14}
+.dz.ll{border-style:solid;border-color:#8a3515;background:#1a0d06}
+.dz-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dz-info{flex:1;min-width:0}
+.upload-intro{font-size:10.5px;line-height:1.45;color:#7d90a7;margin-bottom:10px}
+.upload-grid{display:grid;gap:8px}
+.dz.upload-card{padding:10px;border-radius:12px;align-items:flex-start;gap:10px;position:relative}
+.dz.upload-card .dz-dot{width:10px;height:10px;margin-top:5px}
+.dz-name{font-size:11px;color:#d6e2f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.upload-actions{display:flex;align-items:center;gap:6px;margin-left:auto}
+.dz-clear{width:24px;height:24px;border-radius:50%;border:1px solid #31445c;background:#101826;color:#8aa0b7;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;line-height:1;flex-shrink:0}
+.dz-clear:hover{background:#1a2637;color:#fff;border-color:#4c6583}
+.upload-help{font-size:10px;line-height:1.45;color:#597087;margin-top:10px;padding:8px 10px;border:1px solid #233247;border-radius:10px;background:#0f1724}
+.modal-backdrop{position:fixed;inset:0;background:rgba(4,7,12,.62);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:1200;padding:16px}
+.modal-backdrop.show{display:flex}
+.modal-card{width:min(420px,100%);background:linear-gradient(180deg,#131b28,#0e1520);border:1px solid #2a3a50;border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,.45);padding:16px}
+.modal-kicker{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#68809a;font-weight:800;margin-bottom:6px}
+.modal-title{font-size:18px;line-height:1.2;color:#eef5ff;font-weight:800;margin-bottom:8px}
+.modal-text{font-size:12px;line-height:1.5;color:#8ea0b7;margin-bottom:14px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end}
+.modal-btn{border:1px solid #31445c;background:#111c2b;color:#d6e5f4;border-radius:10px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer}
+.modal-btn:hover{background:#182537}
+.modal-btn.primary{background:#1d5f96;border-color:#3487d2;color:#fff}
+.modal-btn.danger{background:#5a2030;border-color:#85435b;color:#fff}
+.dz-label{font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#6a8a9a;margin-bottom:4px}
+
+/* Controls */
+.ctrl{display:flex;align-items:center;gap:5px;margin-bottom:5px}
+.ctrl:last-child{margin-bottom:0}
+.ctrl label{font-size:11px;color:#5a7a8a;min-width:62px;flex-shrink:0}
+.ctrl input[type=range]{flex:1;accent-color:#2a9a65;cursor:pointer}
+.ctrl .v{font-size:10px;font-weight:600;color:#8a9aaa;min-width:36px;text-align:right;flex-shrink:0}
+
+/* View buttons */
+.vbtns{display:flex;gap:4px;margin-top:6px}
+.vbtns button{flex:1;font-size:10px;padding:4px 2px;border:1px solid #2a3a50;border-radius:5px;background:#0d1420;color:#8a9aaa;cursor:pointer}
+.vbtns button:hover{background:#141e30;color:#aaa}
+
+/* Tool buttons */
+.tbtn{width:100%;font-size:11px;padding:5px 8px;border:1px solid #2a3a50;border-radius:6px;background:#0d1420;color:#8a9aaa;cursor:pointer;text-align:left;display:flex;align-items:center;gap:6px;margin-bottom:4px;transition:all .1s}
+.tbtn:last-child{margin-bottom:0}
+.tbtn:hover{background:#141e30;border-color:#3a5a70;color:#bbb}
+.tbtn.on{background:#0a2018;color:#4aca90;border-color:#1a6a45;font-weight:600}
+.tbtn.on-ed{background:#1e1a06;color:#FFD580;border-color:#7a6000;font-weight:600}
+.tbtn-del{border-color:#5a2020!important;color:#cc6060!important}
+.tbtn-del:hover{background:#2a1010!important}
+.tbtn-close{border-color:#1a6a45!important;color:#4aca90!important;display:none}
+
+.tip{font-size:10px;color:#4a6a7a;line-height:1.5;margin-top:6px}
+
+/* Canvas area */
+#ca{flex:1;position:relative;background:#0d1117;overflow:hidden}
+#cv{display:block}
+
+/* Overlays */
+#ov{position:absolute;top:8px;left:8px;display:flex;gap:5px;pointer-events:none}
+.bd{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:500}
+.bu{background:rgba(74,202,144,.15);color:#4aca90}
+.bl{background:rgba(240,130,90,.15);color:#f08060}
+#mi{position:absolute;bottom:8px;left:8px;font-size:11px;color:#FFD580;pointer-events:none;padding:3px 0;border-radius:9px;display:none;line-height:1.5;max-width:350px}
+#hint{position:absolute;bottom:8px;right:8px;font-size:10px;color:rgba(255,255,255,.2);pointer-events:none}
+#dims{position:absolute;top:84px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(255,255,255,.25);pointer-events:none;display:none}
+#lasso-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+#lasso-path{fill:rgba(255,90,90,.12);stroke:#ff6868;stroke-width:2;stroke-dasharray:5 4}
+</style>
+</head>
+<body>
+<div id="app">
+
+<div id="sb">
+
+  <div class="workflow-head">
+    <div class="wf-kicker">Dental Splint Workflow</div>
+    <div class="wf-title">Splint Designer</div>
+    <div class="wf-sub">Postupuj krok za krokom. Aktívny je vždy len jeden mód, aby používateľ nevidel všetky nástroje naraz.</div>
+    <div class="wf-status">
+      <div class="wf-status-title" id="wf-status-title">1. Nahraj skeny</div>
+      <div class="wf-status-text" id="wf-status-text">Nahraj hornú alebo dolnú čeľusť. Druhú môžeš doplniť pre kontrolu zhryzu.</div>
+    </div>
+    <div id="workflow-compact-help">Tip: zobrazenie a opacita zostávajú v plávajúcom paneli vpravo hore.</div>
+  </div>
+
+
+  <div class="sb-sec step-section active" data-step="1">
+    <div class="sb-h">1. Skeny čelustí</div>
+    <div class="mode-chip">● Input mode</div>
+    <div class="upload-intro">Nahraj horný alebo dolný STL sken. Stačí kliknúť alebo pretiahnuť súbor do správneho boxu.</div>
+    <div class="upload-grid">
+      <div class="dz upload-card" id="du" onclick="document.getElementById('fu').click()">
+        <div class="dz-dot" style="background:#4aca90"></div>
+        <div class="dz-info">
+          <div class="dz-label">Maxilla (Horná)</div>
+          <div class="dz-name" id="tu">Klikni alebo pretiahni STL…</div>
+        </div>
+        <div class="upload-actions">
+          <button class="dz-clear" type="button" title="Vymazať horný sken" onclick="event.stopPropagation(); clearScan('upper')">×</button>
+        </div>
+      </div>
+      <input type="file" id="fu" accept=".stl" style="display:none">
+
+      <div class="dz upload-card" id="dl" onclick="document.getElementById('fl').click()">
+        <div class="dz-dot" style="background:#f08060"></div>
+        <div class="dz-info">
+          <div class="dz-label">Mandibula (Dolná)</div>
+          <div class="dz-name" id="tl">Klikni alebo pretiahni STL…</div>
+        </div>
+        <div class="upload-actions">
+          <button class="dz-clear" type="button" title="Vymazať dolný sken" onclick="event.stopPropagation(); clearScan('lower')">×</button>
+        </div>
+      </div>
+      <input type="file" id="fl" accept=".stl" style="display:none">
+    </div>
+  </div>
+
+  <div class="sb-sec step-section" data-step="2">
+    <div class="sb-h">2. Očistenie skenu (voliteľné)</div>
+    <div class="mode-chip">✂ Cleanup mode</div>
+    <button class="tbtn" id="tool-l" onclick="setTool('l')">✂ Laso — vyrezať zlú časť</button>
+    <button class="tbtn" id="cleanup-undo" onclick="undoCleanup()" disabled>↶ Vrátiť posledný rez</button>
+    <div class="tip">Skry nepotrebnú čeľusť, obkresli chybnú časť a uvoľni myš.</div>
+  </div>
+
+  <div class="sb-sec step-section" data-step="3">
+    <div class="sb-h">3. Otvorenie zhryzu</div>
+    <div class="mode-chip">↕ Occlusal adjustment</div>
+    <div class="ctrl">
+      <label>Otvorenie</label>
+      <input type="range" id="bite" min="0" max="10" step="0.1" value="0">
+      <span class="v"><span id="bitev">0.0</span>mm</span>
+    </div>
+  </div>
+
+  <div class="sb-sec step-section" data-step="4" style="flex:1">
+    <div class="sb-h">4. Margin línia dlahy</div>
+    <div class="mode-chip">✏ Outline designation</div>
+    <button class="tbtn on" id="tool-r" onclick="setTool('r')">↺ Otáčaj modelom</button>
+    <button class="tbtn" id="tool-d" onclick="setTool('d')">✏ Kresli body línie</button>
+    <button class="tbtn on-ed" id="tool-ed" onclick="setTool('ed')" style="display:none">✥ Upraviť bod</button>
+    <button class="tbtn" id="tool-e" onclick="setTool('e')">⌫ Zmazať bod</button>
+    <button class="tbtn tbtn-close" id="tool-c" onclick="closeLine()">✓ Uzavrieť líniu</button>
+    <button class="tbtn tbtn-del" onclick="clearAll()">✕ Zmazať celú líniu</button>
+    <div class="tip" id="ttip">Pre kreslenie línie skryte čeľusť, ktorú nepotrebujete, a prepnite nástroj na Kreslenie.</div>
+  </div>
+
+  <div class="sb-sec step-section" data-step="5" style="border-bottom:none; background:#181f2c; border-top:1px solid #24344f; padding:12px 10px;">
+    <div class="sb-h" style="color:#6fa1ff">5. Finálny krok (Generovanie)</div>
+    <div class="mode-chip">⚙ Outer surface & export</div>
+    <div class="ctrl">
+      <label style="color:#8ab4f8">Hrúbka</label>
+      <input type="range" id="thick" min="0.5" max="5" step="0.1" value="2.0">
+      <span class="v" style="color:#8ab4f8"><span id="thickv">2.0</span>mm</span>
+    </div>
+    <div class="ctrl" style="margin-bottom:10px;">
+      <label style="color:#8ab4f8">Offset</label>
+      <input type="range" id="offset" min="0" max="0.5" step="0.05" value="0.20">
+      <span class="v" style="color:#8ab4f8"><span id="offsetv">0.20</span>mm</span>
+    </div>
+    <button class="tbtn" id="btn-gen" onclick="generateSplint()" style="background:#1a446c; border-color:#2b639b; color:#fff; justify-content:center; font-weight:bold; padding:8px; font-size:12px;">⚙ Vygenerovať 3D dlahu</button>
+    <button class="tbtn" id="btn-export" onclick="exportSTL()" style="margin-top:5px; display:none; background:#0e3a22; border-color:#1a6a3e; color:#5eff9d; justify-content:center; font-weight:bold; padding:8px; font-size:12px;">⬇ Exportovať hotové STL</button>
+  </div>
+
+
+  <div class="step-nav">
+    <button id="wf-prev" onclick="prevStep()">← Späť</button>
+    <button id="wf-next" class="primary" onclick="nextStep()">Ďalej →</button>
+  </div>
+
+  <div style="padding:6px 10px;background:#0d1117;border-top:1px solid #1a2330">
+    <div style="font-size:9px;color:#2a3a50;text-align:center">Dental Splint Workflow v0.8</div>
+  </div>
+</div>
+
+<div id="ca">
+  <canvas id="cv"></canvas>
+  <div class="workflow-topbar">
+    <div class="wf-steps" aria-label="Workflow steps">
+      <button class="wf-step active" id="wf-step-1" onclick="setStep(1)"><span class="wf-step-num"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V5"></path><path d="M8 9l4-4 4 4"></path><path d="M5 19h14"></path></svg></span><span class="wf-step-label">Scan</span></button>
+      <button class="wf-step" id="wf-step-2" onclick="setStep(2)"><span class="wf-step-num"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h7"></path><path d="M4 12h10"></path><path d="M4 17h6"></path><path d="M16 7l4 4"></path><path d="M20 7l-4 4"></path></svg></span><span class="wf-step-label">Clean</span></button>
+      <button class="wf-step" id="wf-step-3" onclick="setStep(3)"><span class="wf-step-num"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16"></path><path d="M8 8l4-4 4 4"></path><path d="M8 16l4 4 4-4"></path></svg></span><span class="wf-step-label">Bite</span></button>
+      <button class="wf-step" id="wf-step-4" onclick="setStep(4)"><span class="wf-step-num"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17l5-5"></path><path d="M13 9l2-2a2 2 0 0 1 3 3l-2 2"></path><path d="M4 20l4-1 9-9-3-3-9 9-1 4z"></path></svg></span><span class="wf-step-label">Margin</span></button>
+      <button class="wf-step" id="wf-step-5" onclick="setStep(5)"><span class="wf-step-num"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v10"></path><path d="M8 11l4 4 4-4"></path><path d="M5 19h14"></path></svg></span><span class="wf-step-label">Export</span></button>
+    </div>
+  </div>
+
+  <svg id="lasso-svg"><path id="lasso-path" d=""></path></svg>
+  <div id="ov">
+    <span class="bd bu" id="bdu" style="display:none">Maxilla</span>
+    <span class="bd bl" id="bdl" style="display:none">Mandibula</span>
+  </div>
+  <div id="mi"></div>
+  <div id="dims"></div>
+
+  <!-- Floating controls panel — bottom right -->
+  <div id="ctrl-panel" style="display:none;position:absolute;top:8px;right:10px;padding:9px 12px;min-width:210px;backdrop-filter:blur(4px)">
+    <div style="font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#3a5060;margin-bottom:7px">Zobrazenie</div>
+    <div class="ctrl" id="cp-maxilla" style="display:none">
+      <label><span style="color:#4aca90">●</span> Maxilla</label>
+      <input type="range" id="opu" min="0" max="100" step="1" value="100">
+      <span class="v" id="opuv">100%</span>
+    </div>
+    <div class="ctrl" id="cp-mandibula" style="display:none">
+      <label><span style="color:#f08060">●</span> Mandibula</label>
+      <input type="range" id="opl" min="0" max="100" step="1" value="100">
+      <span class="v" id="oplv">100%</span>
+    </div>
+    <div class="ctrl" id="splintControl" style="display:none">
+      <label><span style="color:#00aaff">●</span> Dlaha</label>
+      <input type="range" id="ops" min="0" max="100" step="1" value="100">
+      <span class="v" id="opsv">100%</span>
+    </div>
+    <div style="display:flex;gap:4px;margin-top:7px">
+      <button id="bf" style="flex:1;font-size:10px;padding:4px 2px;border:1px solid #2a3a50;border-radius:5px;background:#0d1420;color:#6a8090;cursor:pointer">Pred</button>
+      <button id="bt" style="flex:1;font-size:10px;padding:4px 2px;border:1px solid #2a3a50;border-radius:5px;background:#0d1420;color:#6a8090;cursor:pointer">Vrch</button>
+      <button id="bs" style="flex:1;font-size:10px;padding:4px 2px;border:1px solid #2a3a50;border-radius:5px;background:#0d1420;color:#6a8090;cursor:pointer">Bok</button>
+      <button id="br" style="flex:1;font-size:10px;padding:4px 2px;border:1px solid #2a3a50;border-radius:5px;background:#0d1420;color:#6a8090;cursor:pointer">↺</button>
+    </div>
+  </div>
+
+  <div id="hint">Ľavé / Pravé drag = otáčaj &nbsp;·&nbsp; Scroll = zoom</div>
+</div>
+
+</div>
+
+<div id="warn-modal" class="modal-backdrop" aria-hidden="true">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="warn-modal-title">
+    <div class="modal-kicker">Warning</div>
+    <div class="modal-title" id="warn-modal-title">Začať nový splint?</div>
+    <div class="modal-text" id="warn-modal-text">Máš rozpracovanú prácu. Ak budeš pokračovať, aktuálne načítané skeny a úpravy sa vymažú.</div>
+    <div class="modal-actions">
+      <button class="modal-btn" id="warn-modal-cancel" type="button" onclick="closeWarnModal()">Zrušiť</button>
+      <button class="modal-btn danger" id="warn-modal-confirm" type="button" onclick="confirmWarnModal()">Áno, pokračovať</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ── State ──────────────────────────────────────────────────────────────
+const STL={upper:null,lower:null};
+let renderer,scene,camera,animId,pivot,uM,lM,mGroup,splintMesh=null;
+let sc=1;
+let isRotDrag=false, isPanDrag=false, lx=0, ly=0, moved=false;
+let isDragPt=false,dragIdx=-1;
+let tool='r';
+let mPts=[],mClosed=false,mLine=null,mPrev=null;
+let mSpheres=[];
+let isLasso=false,lassoPts=[],cleanupHistory=[];
+const rc=new THREE.Raycaster();
+const C_PT=0xFFD580,C_FIRST=0xFFFFFF;
+
+// ── STL parser ─────────────────────────────────────────────────────────
+function parseBin(buf){
+  const v=new DataView(buf),n=v.getUint32(80,true);
+  const pos=new Float32Array(n*9),nor=new Float32Array(n*9);
+  let o=84;
+  for(let i=0;i<n;i++){
+    const nx=v.getFloat32(o,true);o+=4;const ny=v.getFloat32(o,true);o+=4;const nz=v.getFloat32(o,true);o+=4;
+    for(let j=0;j<3;j++){const b=(i*3+j)*3;pos[b]=v.getFloat32(o,true);o+=4;pos[b+1]=v.getFloat32(o,true);o+=4;pos[b+2]=v.getFloat32(o,true);o+=4;nor[b]=nx;nor[b+1]=ny;nor[b+2]=nz;}
+    o+=2;
+  }
+  return{pos,nor};
+}
+function parseAsc(buf){
+  const t=new TextDecoder().decode(buf),pa=[],na=[];
+  const vr=/vertex\s+([\d.eE+\-]+)\s+([\d.eE+\-]+)\s+([\d.eE+\-]+)/g;
+  const nr=/facet normal\s+([\d.eE+\-]+)\s+([\d.eE+\-]+)\s+([\d.eE+\-]+)/g;
+  const ns=[];let m;
+  while((m=nr.exec(t))!==null)ns.push([+m[1],+m[2],+m[3]]);
+  let vm,ti=0;
+  while((vm=vr.exec(t))!==null){pa.push(+vm[1],+vm[2],+vm[3]);const n=ns[Math.floor(ti/3)]||[0,1,0];na.push(...n);ti++;}
+  return{pos:new Float32Array(pa),nor:new Float32Array(na)};
+}
+function parseSTL(buf){
+  const t=new TextDecoder().decode(new Uint8Array(buf,0,Math.min(256,buf.byteLength)));
+  return(t.trimStart().toLowerCase().startsWith('solid')&&!/\0/.test(t))?parseAsc(buf):parseBin(buf);
+}
+
+// ── Scene ──────────────────────────────────────────────────────────────
+function initScene(){
+  if(renderer){renderer.dispose();cancelAnimationFrame(animId);}
+  const area=document.getElementById('ca');
+  const w=area.clientWidth,h=area.clientHeight;
+  const cv=document.getElementById('cv');
+  renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true});
+  renderer.setPixelRatio(window.devicePixelRatio||1); 
+  renderer.setSize(w,h,true);
+  renderer.setClearColor(0x0d1117);
+  scene=new THREE.Scene();
+  pivot=new THREE.Group();scene.add(pivot);
+  mGroup=new THREE.Group();pivot.add(mGroup);
+  camera=new THREE.PerspectiveCamera(40,w/h,.01,1e6);
+  scene.add(new THREE.AmbientLight(0xffffff,.45));
+  const d1=new THREE.DirectionalLight(0xffffff,.9);d1.position.set(1,2,3);scene.add(d1);
+  const d2=new THREE.DirectionalLight(0x6688cc,.35);d2.position.set(-2,-1,-2);scene.add(d2);
+}
+window.addEventListener('resize',()=>{
+  if(!renderer)return;
+  const area=document.getElementById('ca');
+  const w=area.clientWidth,h=area.clientHeight;
+  renderer.setSize(w,h,true);
+  camera.aspect=w/h;camera.updateProjectionMatrix();
+});
+
+function mkMesh(data,color){
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.BufferAttribute(data.pos,3));
+  g.setAttribute('normal',new THREE.BufferAttribute(data.nor,3));
+  g.computeBoundingBox();
+  return new THREE.Mesh(g,new THREE.MeshPhongMaterial({color,specular:0x223344,shininess:50,side:THREE.DoubleSide,transparent:true,opacity:1,depthWrite:true}));
+}
+function setOpacity(mesh,val){
+  if(!mesh)return;
+  mesh.visible=val>0;
+  mesh.material.transparent=val<.99;
+  mesh.material.opacity=val;
+  // Keep a depth surface while translucent so rear margin segments stay hidden.
+  mesh.material.depthWrite=(val>.1);
+  mesh.material.needsUpdate=true;
+  mesh.renderOrder=val>=.99?0:1;
+}
+function rebuild(){
+  if(!scene)return;
+  
+  // 1. Vymazanie starých objektov
+  if(splintMesh){pivot.remove(splintMesh); splintMesh.geometry.dispose(); splintMesh=null; document.getElementById('btn-export').style.display='none';}
+  
+  if(uM){pivot.remove(uM); uM.geometry.dispose(); uM=null;}
+  if(lM){pivot.remove(lM); lM.geometry.dispose(); lM=null;}
+  
+  document.getElementById('bdu').style.display='none';
+  document.getElementById('bdl').style.display='none';
+
+  // 2. Obnova zubov s opacitou
+  if(STL.upper){
+    uM=mkMesh(STL.upper, 0x4aca90);
+    setOpacity(uM, +document.getElementById('opu').value/100);
+    pivot.add(uM);
+    document.getElementById('bdu').style.display='inline';
+  }
+  if(STL.lower){
+    lM=mkMesh(STL.lower, 0xf08060);
+    setOpacity(lM, +document.getElementById('opl').value/100);
+    pivot.add(lM);
+    document.getElementById('bdl').style.display='inline';
+    applyBite();
+  }
+
+  // 3. Obnova dlahy, AK existuje (túto časť doplň)
+  if(typeof splintData !== 'undefined' && splintData.pos) {
+    splintMesh = mkMesh(splintData, 0x00aaff); // Tvoja funkcia mkMesh
+    // Nastavíme opacitu podľa posuvníka 'ops', ktorý sme vytvorili v menu
+    setOpacity(splintMesh, +document.getElementById('ops').value/100); 
+    pivot.add(splintMesh);
+    document.getElementById('btn-export').style.display = 'block'; // Ukáže tlačidlo
+    document.getElementById('splintControl').style.display = 'flex'; // Ukáže posuvník
+  }
+
+  
+  // Kamera sa prispôsobí iba pri PRVOM načítaní akéhokoľvek skenu,
+  // aby ti po nahratí druhej čeľuste neodrotovalo rozpracovaný pohľad
+  if(!pivot.userData.initialized){
+    fitCam();
+    pivot.userData.initialized = true;
+  }
+  
+  // Show/hide ctrl-panel and individual sliders
+  const panel = document.getElementById('ctrl-panel');
+  if (uM || lM) {
+    panel.style.display = 'block';
+    document.getElementById('cp-maxilla').style.display  = uM ? 'flex' : 'none';
+    document.getElementById('cp-mandibula').style.display = lM ? 'flex' : 'none';
+  } else {
+    panel.style.display = 'none';
+    document.getElementById('cp-maxilla').style.display = 'none';
+    document.getElementById('cp-mandibula').style.display = 'none';
+    document.getElementById('splintControl').style.display = 'none';
+  }
+
+  const dd=document.getElementById('dims');
+  if(uM||lM){
+    const box=new THREE.Box3().setFromObject(pivot);
+    const sz=new THREE.Vector3();box.getSize(sz);
+    dd.textContent=`${sz.x.toFixed(1)}×${sz.y.toFixed(1)}×${sz.z.toFixed(1)} mm`;
+    dd.style.display='block';
+  } else {
+    dd.style.display='none';
+  }
+}
+function applyBite(){if(lM)lM.position.y=-(+document.getElementById('bite').value||0);}
+function fitCam(){
+  pivot.position.set(0,0,0);
+  pivot.updateMatrixWorld(true);
+  const box=new THREE.Box3().setFromObject(pivot);
+  if(box.isEmpty())return;
+  const sz=new THREE.Vector3();box.getSize(sz);
+  const ctr=new THREE.Vector3();box.getCenter(ctr);
+  pivot.position.set(-ctr.x,-ctr.y,-ctr.z);
+  sc=Math.max(sz.x,sz.y,sz.z);
+  camera.position.set(0,0,sc*1.8);
+  camera.near=sc*.001;camera.far=sc*100;
+  camera.updateProjectionMatrix();
+  refreshSphereSize();
+}
+function refreshSphereSize(){const r=sc*.01;mSpheres.forEach(s=>s.scale.setScalar(r/.5));}
+function animate(){animId=requestAnimationFrame(animate);renderer&&renderer.render(scene,camera);}
+
+// ── Files ──────────────────────────────────────────────────────────────
+function loadFile(buf,which){
+  try{
+    STL[which]=parseSTL(buf);
+    if(!renderer){initScene();animate();}
+    rebuild();
+    refreshUploadUI();
+    updateWorkflowProgress();
+  }catch(e){alert('Chyba pri načítaní: '+e.message);}
+}
+function setupDrop(did,iid,which,tid){
+  const drop=document.getElementById(did),inp=document.getElementById(iid);
+  inp.onchange=e=>{
+    const f=e.target.files[0];
+    if(!f)return;
+    document.getElementById(tid).textContent=f.name;
+    const r=new FileReader();
+    r.onload=ev=>loadFile(ev.target.result,which);
+    r.readAsArrayBuffer(f);
+  };
+  drop.addEventListener('dragover',e=>{e.preventDefault();drop.style.opacity='.85';drop.style.borderColor='#4d78a8';});
+  drop.addEventListener('dragleave',()=>{drop.style.opacity='';drop.style.borderColor='';});
+  drop.addEventListener('drop',e=>{
+    e.preventDefault();
+    drop.style.opacity='';drop.style.borderColor='';
+    const f=e.dataTransfer.files[0];
+    if(!f)return;
+    document.getElementById(tid).textContent=f.name;
+    const r=new FileReader();
+    r.onload=ev=>loadFile(ev.target.result,which);
+    r.readAsArrayBuffer(f);
+  });
+}
+function refreshUploadUI(){
+  const upperLoaded=!!STL.upper, lowerLoaded=!!STL.lower;
+  const du=document.getElementById('du'), dl=document.getElementById('dl');
+  du.className='dz upload-card'+(upperLoaded?' loaded lu':'');
+  dl.className='dz upload-card'+(lowerLoaded?' loaded ll':'');
+  if(!upperLoaded) document.getElementById('tu').textContent='Klikni alebo pretiahni STL…';
+  if(!lowerLoaded) document.getElementById('tl').textContent='Klikni alebo pretiahni STL…';
+}
+setupDrop('du','fu','upper','tu');
+setupDrop('dl','fl','lower','tl');
+refreshUploadUI();
+
+function clearScan(which){
+  STL[which]=null;
+  const isUpper = which==='upper';
+  document.getElementById(isUpper ? 'fu' : 'fl').value='';
+  if(!STL.upper && !STL.lower){
+    cleanupHistory=[];
+    document.getElementById('cleanup-undo').disabled=true;
+    clearMarginOnly();
+  }
+  if(pivot && pivot.userData) pivot.userData.initialized=false;
+  rebuild();
+  refreshUploadUI();
+  updateWorkflowProgress();
+}
+
+// ── Sliders ────────────────────────────────────────────────────────────
+document.getElementById('opu').addEventListener('input',function(){document.getElementById('opuv').textContent=this.value+'%';setOpacity(uM,this.value/100);});
+document.getElementById('opl').addEventListener('input',function(){document.getElementById('oplv').textContent=this.value+'%';setOpacity(lM,this.value/100);});
+document.getElementById('bite').addEventListener('input',function(){document.getElementById('bitev').textContent=(+this.value).toFixed(1);applyBite();updateWorkflowProgress();});
+document.getElementById('thick').addEventListener('input',function(){document.getElementById('thickv').textContent=(+this.value).toFixed(1);});
+document.getElementById('offset').addEventListener('input',function(){document.getElementById('offsetv').textContent=(+this.value).toFixed(2);});
+document.getElementById('ops').addEventListener('input',function(){
+  document.getElementById('opsv').textContent=this.value+'%';
+  setOpacity(splintMesh,this.value/100);
+});
+
+// ── NDC & Filtering Raycast ────────────────────────────────────────────
+function getNDC(e){
+  const cv=document.getElementById('cv'),r=cv.getBoundingClientRect();
+  return new THREE.Vector2(((e.clientX-r.left)/r.width)*2-1,-((e.clientY-r.top)/r.height)*2+1);
+}
+function getMeshes(){
+  const a=[];
+  // Ignoruje modely, ktoré sú skryté (opacita < 10%), aby neblokovali klikanie
+  if(uM && uM.material.opacity > 0.1) a.push(uM);
+  if(lM && lM.material.opacity > 0.1) a.push(lM);
+  return a;
+}
+
+function w2l(worldPt){return mGroup.worldToLocal(worldPt.clone());}
+function l2w(localPt){return mGroup.localToWorld(localPt.clone());}
+
+// Points clicked on a mesh often z-fight with the scan surface.
+// Lift them only a tiny amount so the margin visually sits on top of the scan,
+// instead of disappearing under the depth buffer in some places.
+function marginLiftDistance(){
+  return Math.min(Math.max(sc * 0.0015, 0.03), 0.18); // mm-ish, clamped
+}
+function liftedHitPoint(hit){
+  if(!hit) return null;
+  const p = hit.point.clone();
+  if(!hit.face || !hit.object) return p;
+
+  const normalMatrix = new THREE.Matrix3().getNormalMatrix(hit.object.matrixWorld);
+  const n = hit.face.normal.clone().applyMatrix3(normalMatrix).normalize();
+
+  // Some STL files have flipped normals. For drawing/editing, choose the side
+  // facing the camera so the helper line remains visible while you work.
+  const camDir = camera.position.clone().sub(p).normalize();
+  if(n.dot(camDir) < 0) n.negate();
+
+  return p.addScaledVector(n, marginLiftDistance());
+}
+
+// ── Margin line (3D Tube Reconstruction) ───────────────────────────────
+function updLine(){
+  if(mLine){mGroup.remove(mLine);mLine.geometry.dispose();mLine=null;}
+  if(mPrev){mGroup.remove(mPrev);mPrev.geometry.dispose();mPrev=null;}
+  if(mPts.length<2)return;
+  
+  const pts=mClosed?[...mPts,mPts[0]]:[...mPts];
+  const curvePath = new THREE.CurvePath();
+  for(let i=0; i<pts.length-1; i++){
+    curvePath.add(new THREE.LineCurve3(pts[i].clone(), pts[i+1].clone()));
+  }
+  
+  // Vytvorí skutočné 3D potrubie namiesto tenkej 1px čiary
+  const tubeGeo = new THREE.TubeGeometry(curvePath, pts.length * 3, sc * 0.0035, 6, false);
+  const mat = new THREE.MeshBasicMaterial({
+    color: 0x55AAFF,
+    depthTest: true,
+    depthWrite: false,
+    transparent: true,
+    opacity: 0.95,
+    polygonOffset: true,
+    polygonOffsetFactor: -8,
+    polygonOffsetUnits: -8
+  });
+  
+  mLine = new THREE.Mesh(tubeGeo, mat);
+  mLine.renderOrder = 999;
+  mGroup.add(mLine);
+}
+
+function updPreview(ndc){
+  if(mPrev){mGroup.remove(mPrev);mPrev.geometry.dispose();mPrev=null;}
+  if(!mPts.length||mClosed||tool!=='d')return;
+  rc.setFromCamera(ndc,camera);
+  const hits=rc.intersectObjects(getMeshes(),false);
+  if(!hits.length)return;
+  const lp=w2l(liftedHitPoint(hits[0]));
+  
+  const pStart = mPts[mPts.length-1].clone();
+  const lineCurve = new THREE.LineCurve3(pStart, lp);
+  const tubeGeo = new THREE.TubeGeometry(lineCurve, 1, sc * 0.003, 4, false);
+  const mat = new THREE.MeshBasicMaterial({
+    color: 0x88CCFF,
+    depthTest: true,
+    depthWrite: false,
+    transparent: true,
+    opacity: 0.6,
+    polygonOffset: true,
+    polygonOffsetFactor: -8,
+    polygonOffsetUnits: -8
+  });
+  
+  mPrev = new THREE.Mesh(tubeGeo, mat);
+  mPrev.renderOrder = 998;
+  mGroup.add(mPrev);
+}
+
+function mkSphere(lp,col){
+  const sg=new THREE.SphereGeometry(.5,12,12);
+  const sm=new THREE.MeshBasicMaterial({color:col,depthTest:true,depthWrite:false,transparent:true,opacity:1,polygonOffset:true,polygonOffsetFactor:-8,polygonOffsetUnits:-8});
+  const s=new THREE.Mesh(sg,sm);
+  s.position.copy(lp);
+  s.renderOrder=1000;
+  const r=sc*.01; 
+  s.scale.setScalar(r/.5);
+  mGroup.add(s);
+  return s;
+}
+
+function projToScreen(lp){
+  const wp=l2w(lp);wp.project(camera);
+  const cv=document.getElementById('cv'),r=cv.getBoundingClientRect();
+  return{x:(wp.x+1)/2*r.width+r.left,y:(-wp.y+1)/2*r.height+r.top};
+}
+function nearFirst(ex,ey,t=22){
+  if(mPts.length<3)return false;
+  const s=projToScreen(mPts[0]);
+  return Math.hypot(s.x-ex,s.y-ey)<t;
+}
+
+function recolor(){mSpheres.forEach((s,i)=>{s.material.color.setHex(i===0?C_FIRST:C_PT);s.material.needsUpdate=true;});}
+
+function addPt(worldPt,ex,ey){
+  if(mClosed)return;
+  if(nearFirst(ex,ey)){closeLine();return;}
+  const lp=w2l(worldPt);
+  mPts.push(lp);
+  mSpheres.push(mkSphere(lp,mPts.length===1?C_FIRST:C_PT));
+  updLine();
+  const n=mPts.length;
+  setInfo(n>=3?`Bodov: ${n} — klikni na prvý bod pre uzavretie`:`Bodov: ${n}`);
+  if(n>=3)document.getElementById('tool-c').style.display='block';
+  updateWorkflowProgress();
+}
+
+function setInfo(txt){const m=document.getElementById('mi');m.style.display='block';m.textContent=txt;}
+function hideInfo(){document.getElementById('mi').style.display='none';}
+
+// ── Tools ──────────────────────────────────────────────────────────────
+const TIPS={
+  r:'Ľavý drag = otáčaj\nPravý drag = posúvaj\nScroll = zoom',
+  d:'Ľavý klik = pridaj bod na povrch skenu\nPravý drag = otáčaj modelom\nEnter = uzavrieť líniu\nBackspace = zmazať posledný bod',
+  ed:'Klikni a drž žltý bod, potiahnutím ho presunú.',
+  e:'Klikni priamo na bod, ktorý chceš vymazať.',
+  l:'Ľavým tlačidlom obkresli chybnú časť skenu. Po uvoľnení sa vyreže.'
+};
+
+let currentStep=1;
+let maxUnlockedStep=1;
+let completedSteps=new Set();
+const STEP_COPY={
+  1:{title:'1. Nahraj skeny',text:'Nahraj hornú alebo dolnú čeľusť. Druhú môžeš doplniť pre kontrolu zhryzu.'},
+  2:{title:'2. Očisti sken',text:'Voliteľné: skry nepotrebnú čeľusť, vyber Laso a odstráň rušivé časti skenu.'},
+  3:{title:'3. Otvor zhryz',text:'Nastav vzdialenosť medzi čeľusťami. Toto je jednoduchá vizuálna kontrola pred plnou okluzálnou analýzou.'},
+  4:{title:'4. Nakresli margin',text:'Prepni na kreslenie, klikaj body priamo na povrch a uzavri líniu kliknutím na prvý bod alebo tlačidlom.'},
+  5:{title:'5. Vygeneruj a exportuj',text:'Nastav offset a hrúbku, vygeneruj dlahu a exportuj STL.'}
+};
+let warnConfirmAction=null;
+function hasWorkInProgress(){
+  return !!(STL.upper||STL.lower||cleanupHistory.length||mPts.length||mClosed||splintMesh||((+document.getElementById('bite').value||0)>0));
+}
+function openWarnModal(title,text,confirmText,onConfirm,options={}){
+  const modal=document.getElementById('warn-modal');
+  const cancelBtn=document.getElementById('warn-modal-cancel');
+  document.getElementById('warn-modal-title').textContent=title||'Pokračovať?';
+  document.getElementById('warn-modal-text').textContent=text||'Táto akcia môže vymazať tvoju prácu.';
+  document.getElementById('warn-modal-confirm').textContent=confirmText||'Pokračovať';
+  warnConfirmAction=typeof onConfirm==='function'?onConfirm:null;
+  if(cancelBtn){
+    const showCancel = options.showCancel !== false;
+    cancelBtn.style.display = showCancel ? '' : 'none';
+    cancelBtn.textContent = options.cancelText || 'Zrušiť';
+  }
+  modal.classList.add('show');
+  modal.setAttribute('aria-hidden','false');
+}
+function closeWarnModal(){
+  const modal=document.getElementById('warn-modal');
+  const cancelBtn=document.getElementById('warn-modal-cancel');
+  modal.classList.remove('show');
+  modal.setAttribute('aria-hidden','true');
+  if(cancelBtn){
+    cancelBtn.style.display='';
+    cancelBtn.textContent='Zrušiť';
+  }
+  warnConfirmAction=null;
+}
+function confirmWarnModal(){
+  const action=warnConfirmAction;
+  closeWarnModal();
+  if(action) action();
+}
+
+function resetWorkflow(){
+  STL.upper=null;
+  STL.lower=null;
+  cleanupHistory=[];
+  completedSteps=new Set();
+  maxUnlockedStep=1;
+  currentStep=1;
+
+  const cleanupUndo=document.getElementById('cleanup-undo');
+  if(cleanupUndo) cleanupUndo.disabled=true;
+
+  document.getElementById('fu').value='';
+  document.getElementById('fl').value='';
+  document.getElementById('bite').value='0';
+  document.getElementById('bitev').textContent='0.0';
+  document.getElementById('thick').value='2.0';
+  document.getElementById('thickv').textContent='2.0';
+  document.getElementById('offset').value='0.20';
+  document.getElementById('offsetv').textContent='0.20';
+  document.getElementById('ops').value='100';
+  document.getElementById('opsv').textContent='100%';
+  document.getElementById('opu').value='100';
+  document.getElementById('opuv').textContent='100%';
+  document.getElementById('opl').value='100';
+  document.getElementById('oplv').textContent='100%';
+
+  clearMarginOnly();
+
+  if(splintMesh){
+    pivot.remove(splintMesh);
+    if(splintMesh.geometry) splintMesh.geometry.dispose();
+    if(splintMesh.material) splintMesh.material.dispose();
+    splintMesh=null;
+  }
+
+  if(uM){
+    pivot.remove(uM);
+    if(uM.geometry) uM.geometry.dispose();
+    uM=null;
+  }
+  if(lM){
+    pivot.remove(lM);
+    if(lM.geometry) lM.geometry.dispose();
+    lM=null;
+  }
+
+  if(pivot){
+    pivot.rotation.set(0,0,0);
+    pivot.position.set(0,0,0);
+    pivot.userData.initialized=false;
+  }
+
+  document.getElementById('btn-export').style.display='none';
+  document.getElementById('splintControl').style.display='none';
+  document.getElementById('ctrl-panel').style.display='none';
+  document.getElementById('bdu').style.display='none';
+  document.getElementById('bdl').style.display='none';
+  document.getElementById('dims').style.display='none';
+
+  refreshUploadUI();
+  hideInfo();
+  setStep(1, true);
+  updateWorkflowProgress();
+}
+
+function requestResetWorkflow(){
+  if(!hasWorkInProgress()) return resetWorkflow();
+  openWarnModal(
+    'Začať nový splint?',
+    'Máš rozpracovanú prácu. Ak budeš pokračovať, aktuálne načítané skeny, margin línia aj vygenerovaná dlaha sa vymažú.',
+    'Áno, začať nový splint',
+    resetWorkflow
+  );
+}
+function requireAtLeastOneScanWarning(){
+  openWarnModal(
+    'Najprv nahraj sken',
+    'Aby si mohol pokračovať ďalej, nahraj aspoň jeden STL sken — horný alebo dolný.',
+    'Rozumiem',
+    null,
+    { showCancel:false }
+  );
+}
+function requireClosedMarginWarning(){
+  openWarnModal(
+    'Najprv uzavri margin líniu',
+    'Pred generovaním dlahy musí byť margin línia nakreslená a uzavretá. V kroku Margin klikni na prvý bod alebo použi tlačidlo „Uzavrieť líniu“.',
+    'Rozumiem',
+    null,
+    { showCancel:false }
+  );
+}
+function setStep(n, force=false){
+  const target=Math.max(1,Math.min(5,n));
+  if(!force && target>maxUnlockedStep) return;
+  currentStep=target;
+  document.querySelectorAll('.step-section').forEach(sec=>{
+    sec.classList.toggle('active', Number(sec.dataset.step)===currentStep);
+  });
+  document.querySelectorAll('.wf-step').forEach(btn=>btn.classList.remove('active'));
+  const active=document.getElementById('wf-step-'+currentStep);
+  if(active) active.classList.add('active');
+  const copy=STEP_COPY[currentStep];
+  const title=document.getElementById('wf-status-title'), text=document.getElementById('wf-status-text');
+  if(title) title.textContent=copy.title;
+  if(text) text.textContent=copy.text;
+  const prev=document.getElementById('wf-prev'), next=document.getElementById('wf-next');
+  if(prev) prev.disabled=currentStep===1;
+  if(next) next.textContent=currentStep===5?'Začať nový splint':'Ďalej →';
+  if(currentStep===1) setTool('r');
+  if(currentStep===2) setTool('l');
+  if(currentStep===4 && !mClosed) setTool('d');
+  if(currentStep===5) setTool('r');
+  updateWorkflowProgress();
+}
+function nextStep(){
+  if(currentStep===5){ requestResetWorkflow(); return; }
+  if(currentStep===1 && !(STL.upper||STL.lower)){
+    requireAtLeastOneScanWarning();
+    return;
+  }
+  if(currentStep===4 && !mClosed){
+    requireClosedMarginWarning();
+    return;
+  }
+  completedSteps.add(currentStep);
+  maxUnlockedStep=Math.max(maxUnlockedStep, Math.min(5, currentStep+1));
+  if(currentStep<5) setStep(currentStep+1, true);
+}
+function prevStep(){ if(currentStep>1) setStep(currentStep-1, true); }
+function updateWorkflowProgress(){
+  for(let i=1;i<=5;i++){
+    const b=document.getElementById('wf-step-'+i);
+    if(!b) continue;
+    b.classList.toggle('done', completedSteps.has(i) && i!==currentStep);
+    b.classList.toggle('locked', i>maxUnlockedStep);
+    b.disabled = i>maxUnlockedStep;
+    b.style.pointerEvents = i>maxUnlockedStep ? 'none' : 'auto';
+    b.style.opacity = i>maxUnlockedStep ? '0.5' : '';
+  }
+}
+
+window.setTool=function(t){
+  tool=t;
+  ['r','d','ed','e','l'].forEach(id=>{
+    const b=document.getElementById('tool-'+id);if(!b)return;
+    b.className='tbtn'+(id===t?(id==='ed'?' on-ed':' on'):'');
+  });
+  document.getElementById('tool-ed').style.display=mPts.length?'block':'none';
+  document.getElementById('tool-c').style.display=(t==='d'&&mPts.length>=3&&!mClosed)?'block':'none';
+  const cv=document.getElementById('cv');
+  cv.style.cursor=(t==='d'||t==='l')?'crosshair':t==='e'?'not-allowed':t==='ed'?'pointer':'grab';
+  if(TIPS[t]) document.getElementById('ttip').textContent=TIPS[t];
+  if(t==='d'&&!mPts.length)setInfo('Klikaj body priamo na povrch skenu');
+};
+window.closeLine=function(){
+  if(mPts.length<3||mClosed)return;
+  mClosed=true;updLine();
+  setInfo(`✓ Línia uzavretá — ${mPts.length} bodov`);
+  document.getElementById('tool-c').style.display='none';
+  setTool('r');
+  updateWorkflowProgress();
+};
+
+
+
+
+
+function computeMarginPlane() {
+
+    let center = new THREE.Vector3();
+
+    for (const p of mPts)
+        center.add(p);
+
+    center.divideScalar(mPts.length);
+
+    let normal = new THREE.Vector3();
+
+    for (let i = 0; i < mPts.length; i++) {
+
+        const p1 = mPts[i].clone().sub(center);
+        const p2 = mPts[(i + 1) % mPts.length].clone().sub(center);
+
+        normal.add(p1.clone().cross(p2));
+    }
+
+    normal.normalize();
+
+    let xAxis = mPts[0].clone().sub(center).normalize();
+
+    let yAxis = new THREE.Vector3()
+        .crossVectors(normal, xAxis)
+        .normalize();
+
+    return {
+        center,
+        normal,
+        xAxis,
+        yAxis
+    };
+}
+
+function projectToPlane(p, origin, xAxis, yAxis) {
+
+    const v = p.clone().sub(origin);
+
+    return {
+        x: v.dot(xAxis),
+        y: v.dot(yAxis)
+    };
+}
+
+function pointInPolygon2D(pt, poly) {
+
+    let inside = false;
+
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+
+        const xi = poly[i].x;
+        const yi = poly[i].y;
+
+        const xj = poly[j].x;
+        const yj = poly[j].y;
+
+        const intersect =
+            ((yi > pt.y) !== (yj > pt.y)) &&
+            (pt.x < (xj - xi) * (pt.y - yi) / (yj - yi) + xi);
+
+        if (intersect)
+            inside = !inside;
+    }
+
+    return inside;
+}
+
+
+function selectTrianglesInsideMargin(mesh) {
+
+    const pos = mesh.geometry.attributes.position.array;
+
+    const triCount = pos.length / 9;
+
+    const selected = new Uint8Array(triCount);
+
+    const plane = computeMarginPlane();
+
+    const poly2D = mPts.map(p =>
+        projectToPlane(
+            p,
+            plane.center,
+            plane.xAxis,
+            plane.yAxis
+        )
+    );
+
+    for (let t = 0; t < triCount; t++) {
+
+        const i = t * 9;
+
+        const cx = (
+            pos[i] +
+            pos[i + 3] +
+            pos[i + 6]
+        ) / 3;
+
+        const cy = (
+            pos[i + 1] +
+            pos[i + 4] +
+            pos[i + 7]
+        ) / 3;
+
+        const cz = (
+            pos[i + 2] +
+            pos[i + 5] +
+            pos[i + 8]
+        ) / 3;
+
+        const p2 = projectToPlane(
+            new THREE.Vector3(cx, cy, cz),
+            plane.center,
+            plane.xAxis,
+            plane.yAxis
+        );
+
+        if (pointInPolygon2D(p2, poly2D))
+            selected[t] = 1;
+    }
+
+    return selected;
+}
+
+
+
+
+function clearMarginOnly(){
+  mPts=[];mClosed=false;
+  if(mGroup){
+    mSpheres.forEach(s=>mGroup.remove(s));
+    if(mLine){mGroup.remove(mLine);mLine.geometry&&mLine.geometry.dispose();mLine=null;}
+    if(mPrev){mGroup.remove(mPrev);mPrev.geometry&&mPrev.geometry.dispose();mPrev=null;}
+  } else {
+    mLine=null;
+    mPrev=null;
+  }
+  mSpheres=[];
+  if(splintMesh && pivot){pivot.remove(splintMesh);splintMesh=null;document.getElementById('btn-export').style.display='none';}
+  document.getElementById('splintControl').style.display='none';
+  hideInfo();
+  document.getElementById('tool-c').style.display='none';
+  document.getElementById('tool-ed').style.display='none';
+}
+window.clearAll=clearMarginOnly;
+
+
+
+
+
+// ── Laplacian smoothing ──────────────────────────────────────────────────
+function smoothMesh(posArr, iterations, lambda) {
+  iterations = iterations||4; lambda = lambda||0.45;
+  const PREC=3, vm=new Map(), vp=[], ti=[];
+  for(let i=0;i<posArr.length/3;i++){
+    const x=posArr[i*3],y=posArr[i*3+1],z=posArr[i*3+2];
+    const k=`${x.toFixed(PREC)},${y.toFixed(PREC)},${z.toFixed(PREC)}`;
+    if(!vm.has(k)){vm.set(k,vp.length/3);vp.push(x,y,z);}
+    ti.push(vm.get(k));
+  }
+  const nv=vp.length/3;
+  const adj=Array.from({length:nv},()=>new Set());
+  for(let i=0;i<ti.length;i+=3){
+    const[a,b,c]=[ti[i],ti[i+1],ti[i+2]];
+    adj[a].add(b);adj[a].add(c);adj[b].add(a);adj[b].add(c);adj[c].add(a);adj[c].add(b);
+  }
+  const cur=Float32Array.from(vp), nxt=new Float32Array(cur.length);
+  for(let it=0;it<iterations;it++){
+    for(let i=0;i<nv;i++){
+      const nb=[...adj[i]]; if(!nb.length){nxt.set(cur.subarray(i*3,i*3+3),i*3);continue;}
+      let sx=0,sy=0,sz=0;
+      for(const j of nb){sx+=cur[j*3];sy+=cur[j*3+1];sz+=cur[j*3+2];}
+      const n=nb.length;
+      nxt[i*3]  =cur[i*3]  +lambda*(sx/n-cur[i*3]);
+      nxt[i*3+1]=cur[i*3+1]+lambda*(sy/n-cur[i*3+1]);
+      nxt[i*3+2]=cur[i*3+2]+lambda*(sz/n-cur[i*3+2]);
+    }
+    cur.set(nxt);
+  }
+  const out=new Float32Array(posArr.length);
+  for(let i=0;i<ti.length;i++){out[i*3]=cur[ti[i]*3];out[i*3+1]=cur[ti[i]*3+1];out[i*3+2]=cur[ti[i]*3+2];}
+  return out;
+}
+
+window.generateSplint = function() {
+  if (!mClosed || mPts.length < 3) { alert("Najprv nakresli a uzavri margin líniu."); return; }
+  const targetMesh = uM || lM;
+  if (!targetMesh) { alert("Musíš mať aspoň jeden model."); return; }
+  setInfo("Generujem 3D dlahu…");
+
+  const offsetVal = parseFloat(document.getElementById('offset').value) || 0.2;
+  const thickVal  = parseFloat(document.getElementById('thick').value)  || 2.0;
+
+  // 1. Non-indexed kópia
+  const workGeo = targetMesh.geometry.toNonIndexed();
+  workGeo.computeVertexNormals();
+  const pos = workGeo.getAttribute('position').array;
+  const nor = workGeo.getAttribute('normal').array;
+  const triCount = pos.length / 9;
+
+  // 2. Výber trojuholníkov vnútri margin polygónu
+  const plane  = computeMarginPlane();
+  const poly2D = mPts.map(p => projectToPlane(p, plane.center, plane.xAxis, plane.yAxis));
+  const selected = new Uint8Array(triCount);
+  for(let t=0;t<triCount;t++){
+    const i=t*9;
+    const cx=(pos[i]+pos[i+3]+pos[i+6])/3,cy=(pos[i+1]+pos[i+4]+pos[i+7])/3,cz=(pos[i+2]+pos[i+5]+pos[i+8])/3;
+    if(pointInPolygon2D(projectToPlane(new THREE.Vector3(cx,cy,cz),plane.center,plane.xAxis,plane.yAxis),poly2D)) selected[t]=1;
+  }
+  let selCount=0; for(let i=0;i<triCount;i++) if(selected[i]) selCount++;
+  if(selCount===0){alert("Žiadne trojuholníky nie sú vnútri línie.");return;}
+
+  // 3. Deduplicácia vrcholov
+  const vm=new Map(), verts=[];
+  function getV(b){
+    const k=`${pos[b].toFixed(3)},${pos[b+1].toFixed(3)},${pos[b+2].toFixed(3)}`;
+    if(!vm.has(k)){vm.set(k,verts.length);verts.push([pos[b],pos[b+1],pos[b+2],0,0,0,0]);}
+    return vm.get(k);
+  }
+  const triIdx=[];
+  for(let t=0;t<triCount;t++){
+    if(!selected[t]) continue;
+    const b=t*9; triIdx.push([getV(b),getV(b+3),getV(b+6)]);
+  }
+
+  // 4. PRIEMEROVANÉ normály pri vrcholoch — zabraňuje trhaninám
+  for(let t=0;t<triCount;t++){
+    if(!selected[t]) continue;
+    const b=t*9;
+    const nx=(nor[b]+nor[b+3]+nor[b+6])/3,ny=(nor[b+1]+nor[b+4]+nor[b+7])/3,nz=(nor[b+2]+nor[b+5]+nor[b+8])/3;
+    for(const vi of [getV(b),getV(b+3),getV(b+6)]){verts[vi][3]+=nx;verts[vi][4]+=ny;verts[vi][5]+=nz;verts[vi][6]++;}
+  }
+  for(const v of verts){
+    const c=v[6]||1,len=Math.sqrt((v[3]/c)**2+(v[4]/c)**2+(v[5]/c)**2)||1;
+    v[3]=v[3]/c/len;v[4]=v[4]/c/len;v[5]=v[5]/c/len;
+  }
+
+  // 5. Directed boundary edges — konzistentná orientácia stien
+  const dE=new Map();
+  for(const[i0,i1,i2] of triIdx)
+    for(const[a,b] of [[i0,i1],[i1,i2],[i2,i0]])
+      dE.set(`${a}_${b}`,(dE.get(`${a}_${b}`)||0)+1);
+  const boundEdges=[];
+  for(const[k] of dE){const[a,b]=k.split('_').map(Number);if(!dE.has(`${b}_${a}`))boundEdges.push([a,b]);}
+
+  // 6. Offset helper s priemerovanou normálou
+  function ov(vi,d){const v=verts[vi];return[v[0]+v[3]*d,v[1]+v[4]*d,v[2]+v[5]*d];}
+  const io=offsetVal, oo=offsetVal+thickVal;
+  const out=[];
+  function addTri(a,b,c){out.push(...a,...b,...c);}
+
+  // Vnútorná plocha (otočené winding)
+  for(const[i0,i1,i2] of triIdx) addTri(ov(i0,io),ov(i2,io),ov(i1,io));
+  // Vonkajšia plocha
+  for(const[i0,i1,i2] of triIdx) addTri(ov(i0,oo),ov(i1,oo),ov(i2,oo));
+  // Steny (directed edges = správny winding)
+  for(const[ea,eb] of boundEdges){
+    const ai=ov(ea,io),ao=ov(ea,oo),bi=ov(eb,io),bo=ov(eb,oo);
+    addTri(ai,ao,bo); addTri(ai,bo,bi);
+  }
+
+  if(out.length===0){alert("Generovanie zlyhalo.");return;}
+
+  // 7. Laplacian smoothing — hladké okraje (5 iterácií)
+  const smoothed = smoothMesh(new Float32Array(out), 5, 0.45);
+
+  // 8. Vytvor mesh
+  const splintGeo=new THREE.BufferGeometry();
+  splintGeo.setAttribute('position',new THREE.Float32BufferAttribute(smoothed,3));
+  splintGeo.computeVertexNormals();
+
+  if(splintMesh){pivot.remove(splintMesh);splintMesh.geometry.dispose();splintMesh.material.dispose();splintMesh=null;}
+  splintMesh=new THREE.Mesh(splintGeo,new THREE.MeshPhongMaterial({
+    color:0x00aaff,specular:0x224466,shininess:70,
+    transparent:false,opacity:1,
+    side:THREE.DoubleSide,depthWrite:true
+  }));
+  setOpacity(splintMesh,+document.getElementById('ops').value/100);
+  pivot.add(splintMesh);
+
+  document.getElementById('btn-export').style.display='flex';
+  document.getElementById('splintControl').style.display='flex';
+  document.getElementById('ctrl-panel').style.display='block';
+  updateWorkflowProgress();
+  setInfo(`✓ Dlaha vygenerovaná — ${selCount} trojuholníkov, ${boundEdges.length} stien`);
+};
+
+
+
+// ── STL Exporter ──────────────────────────────────────────────────────
+window.exportSTL = function() {
+  if (!splintMesh) { alert('Najprv vygeneruj dlahu.'); return; }
+  const geo = splintMesh.geometry;
+  const pos = geo.getAttribute('position').array;
+  const nor = geo.getAttribute('normal') ? geo.getAttribute('normal').array : null;
+  const numTris = pos.length / 9;
+
+  const buf = new ArrayBuffer(84 + numTris * 50);
+  const dv  = new DataView(buf);
+  // Header
+  const hdr = 'Dental Splint - exported by Dental Splint Viewer';
+  for (let i=0;i<80;i++) dv.setUint8(i, i<hdr.length ? hdr.charCodeAt(i) : 32);
+  dv.setUint32(80, numTris, true);
+
+  let o = 84;
+  for (let i=0; i<numTris; i++) {
+    // Normal (use stored or compute from cross product)
+    if (nor) {
+      dv.setFloat32(o,    nor[i*9],   true);
+      dv.setFloat32(o+4,  nor[i*9+1], true);
+      dv.setFloat32(o+8,  nor[i*9+2], true);
+    } else {
+      // Compute face normal
+      const ax=pos[i*9],ay=pos[i*9+1],az=pos[i*9+2];
+      const bx=pos[i*9+3],by=pos[i*9+4],bz=pos[i*9+5];
+      const cx=pos[i*9+6],cy=pos[i*9+7],cz=pos[i*9+8];
+      const ux=bx-ax,uy=by-ay,uz=bz-az;
+      const vx=cx-ax,vy=cy-ay,vz=cz-az;
+      const nl=Math.sqrt((uy*vz-uz*vy)**2+(uz*vx-ux*vz)**2+(ux*vy-uy*vx)**2)||1;
+      dv.setFloat32(o,   (uy*vz-uz*vy)/nl, true);
+      dv.setFloat32(o+4, (uz*vx-ux*vz)/nl, true);
+      dv.setFloat32(o+8, (ux*vy-uy*vx)/nl, true);
+    }
+    // 3 vertices
+    for (let j=0; j<3; j++) {
+      dv.setFloat32(o+12+j*12,   pos[i*9+j*3],   true);
+      dv.setFloat32(o+12+j*12+4, pos[i*9+j*3+1], true);
+      dv.setFloat32(o+12+j*12+8, pos[i*9+j*3+2], true);
+    }
+    dv.setUint16(o+48, 0, true);
+    o += 50;
+  }
+
+  const blob = new Blob([buf], {type:'application/octet-stream'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'nightguard_splint.stl';
+  a.click();
+  setInfo('✓ STL exportované: nightguard_splint.stl');
+};
+
+
+// ── Lasso cleanup ──────────────────────────────────────────────────────
+function lassoSvgPath(){return document.getElementById('lasso-path');}
+function canvasLocalPoint(e){
+  const area=document.getElementById('ca').getBoundingClientRect();
+  return {x:e.clientX-area.left,y:e.clientY-area.top};
+}
+function updateLassoPath(close){
+  const path=lassoSvgPath();
+  if(!lassoPts.length){path.setAttribute('d','');return;}
+  let d=`M ${lassoPts[0].x} ${lassoPts[0].y}`;
+  for(let i=1;i<lassoPts.length;i++) d+=` L ${lassoPts[i].x} ${lassoPts[i].y}`;
+  if(close && lassoPts.length>2) d+=' Z';
+  path.setAttribute('d',d);
+}
+function clearLassoPath(){lassoPts=[];lassoSvgPath().setAttribute('d','');}
+function pointInScreenPolygon(pt,poly){
+  let inside=false;
+  for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+    const xi=poly[i].x, yi=poly[i].y, xj=poly[j].x, yj=poly[j].y;
+    const hit=((yi>pt.y)!==(yj>pt.y)) && (pt.x < (xj-xi)*(pt.y-yi)/(yj-yi+1e-12)+xi);
+    if(hit) inside=!inside;
+  }
+  return inside;
+}
+function worldToCanvasXY(worldPt){
+  const area=document.getElementById('ca').getBoundingClientRect();
+  const p=worldPt.clone().project(camera);
+  return {x:(p.x+1)*0.5*area.width,y:(-p.y+1)*0.5*area.height,z:p.z};
+}
+function cleanupTargetMesh(){
+  const visible=getMeshes().filter(m=>m && m.material.opacity>0.1);
+  if(visible.length!==1){
+    setInfo('Pre laso nechaj viditeľnú iba jednu čeľusť. Druhú stiahni na 0 % opacity.');
+    return null;
+  }
+  return visible[0];
+}
+function cutMeshWithLasso(mesh,poly){
+  if(!mesh || poly.length<3) return 0;
+  mesh.updateMatrixWorld(true);
+  const oldGeo=mesh.geometry;
+  const geo=oldGeo.index ? oldGeo.toNonIndexed() : oldGeo;
+  const pos=geo.getAttribute('position').array;
+  const norAttr=geo.getAttribute('normal');
+  const nor=norAttr ? norAttr.array : null;
+  const keepPos=[],keepNor=[];
+  let cut=0, kept=0;
+
+  for(let i=0;i<pos.length;i+=9){
+    const a=new THREE.Vector3(pos[i],pos[i+1],pos[i+2]).applyMatrix4(mesh.matrixWorld);
+    const b=new THREE.Vector3(pos[i+3],pos[i+4],pos[i+5]).applyMatrix4(mesh.matrixWorld);
+    const c=new THREE.Vector3(pos[i+6],pos[i+7],pos[i+8]).applyMatrix4(mesh.matrixWorld);
+    const center=a.clone().add(b).add(c).multiplyScalar(1/3);
+    const sp=worldToCanvasXY(center);
+    const remove = sp.z>=-1 && sp.z<=1 && pointInScreenPolygon(sp,poly);
+    if(remove){cut++;continue;}
+    kept++;
+    for(let k=0;k<9;k++) keepPos.push(pos[i+k]);
+    if(nor) for(let k=0;k<9;k++) keepNor.push(nor[i+k]);
+  }
+
+  if(cut===0) return 0;
+  if(kept===0){setInfo('Laso by odstránilo celý model — rez som zrušil.');return 0;}
+
+  cleanupHistory.push({
+    mesh,
+    geometry: oldGeo.clone()
+  });
+
+  const newGeo=new THREE.BufferGeometry();
+  newGeo.setAttribute('position',new THREE.Float32BufferAttribute(keepPos,3));
+  if(nor && keepNor.length===keepPos.length) newGeo.setAttribute('normal',new THREE.Float32BufferAttribute(keepNor,3));
+  else newGeo.computeVertexNormals();
+  newGeo.computeBoundingBox();
+  newGeo.computeBoundingSphere();
+
+  mesh.geometry=newGeo;
+  if(geo!==oldGeo) geo.dispose();
+  oldGeo.dispose();
+  document.getElementById('cleanup-undo').disabled=false;
+  if(splintMesh){pivot.remove(splintMesh);splintMesh.geometry.dispose();splintMesh=null;document.getElementById('btn-export').style.display='none';}
+  return cut;
+}
+function finishLasso(){
+  updateLassoPath(true);
+  const poly=lassoPts.slice();
+  clearLassoPath();
+  if(poly.length<4){setInfo('Laso bolo príliš krátke.');return;}
+  const target=cleanupTargetMesh();
+  if(!target) return;
+  const removed=cutMeshWithLasso(target,poly);
+  setInfo(removed>0 ? `✓ Laso odstránilo ${removed} trojuholníkov. Ak niečo chýba, použi „Vrátiť posledný rez“. ` : 'Laso nič nezasiahlo — skús obkresliť väčšiu oblasť.');
+}
+window.undoCleanup=function(){
+  const last=cleanupHistory.pop();
+  if(!last || !last.mesh) return;
+  if(last.mesh.geometry) last.mesh.geometry.dispose();
+  last.mesh.geometry=last.geometry;
+  document.getElementById('cleanup-undo').disabled=cleanupHistory.length===0;
+  setInfo('✓ Posledný rez bol vrátený.');
+};
+
+// ── Mouse / keyboard Event listeners ───────────────────────────────────
+const cv=document.getElementById('cv');
+
+cv.addEventListener('mousemove',e=>{
+  if(isLasso){
+    const p=canvasLocalPoint(e);
+    const last=lassoPts[lassoPts.length-1];
+    if(!last || Math.hypot(p.x-last.x,p.y-last.y)>2){lassoPts.push(p);updateLassoPath(false);}
+    moved=true;
+    return;
+  }
+
+  const ndc=getNDC(e);
+  if(tool==='d'&&mPts.length&&!mClosed)updPreview(ndc);
+
+  if(isDragPt&&dragIdx>=0){
+    rc.setFromCamera(ndc,camera);
+    const hits=rc.intersectObjects(getMeshes(),false);
+    if(hits.length){const lp=w2l(liftedHitPoint(hits[0]));mPts[dragIdx].copy(lp);mSpheres[dragIdx].position.copy(lp);updLine();}
+    return;
+  }
+  if(!isRotDrag && !isPanDrag)return;
+  
+  const dx=e.clientX-lx,dy=e.clientY-ly;lx=e.clientX;ly=e.clientY;
+  if(Math.abs(dx)+Math.abs(dy)>2)moved=true;
+
+  if(isRotDrag){
+    pivot.rotation.y+=dx*.01;pivot.rotation.x+=dy*.01;
+    pivot.updateMatrixWorld(true);
+  } else if(isPanDrag){
+    const factor=(camera.position.z*0.0012);
+    camera.position.x-=dx*factor;
+    camera.position.y+=dy*factor;
+  }
+});
+
+cv.addEventListener('mousedown',e=>{
+  moved=false;lx=e.clientX;ly=e.clientY;
+  if(tool==='l' && e.button===0 && !e.shiftKey){
+    e.preventDefault();
+    isLasso=true;
+    lassoPts=[canvasLocalPoint(e)];
+    updateLassoPath(false);
+    moved=true;
+    return;
+  }
+  if(e.button===1 || (e.button===0 && e.shiftKey)){
+    isPanDrag=true;
+  } else if(e.button===2 || (e.button===0 && tool==='r')){
+    isRotDrag=true;
+  }
+  if(tool==='ed'&&e.button===0 && !e.shiftKey){
+    rc.setFromCamera(getNDC(e),camera);
+    const hits=rc.intersectObjects(mSpheres,false);
+    if(hits.length){dragIdx=mSpheres.indexOf(hits[0].object);isDragPt=true;cv.style.cursor='grabbing';return;}
+  }
+});
+
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+window.addEventListener('mouseup',e=>{
+  if(isLasso){
+    if(e && typeof e.clientX==='number') lassoPts.push(canvasLocalPoint(e));
+    isLasso=false;
+    finishLasso();
+    return;
+  }
+  if(isDragPt){isDragPt=false;dragIdx=-1;cv.style.cursor='pointer';return;}
+  isRotDrag=false;
+  isPanDrag=false;
+});
+
+cv.addEventListener('click',e=>{
+  if(moved||e.button!==0||e.shiftKey)return; 
+  const ndc=getNDC(e);
+  if(tool==='d'){
+    rc.setFromCamera(ndc,camera);
+    const hits=rc.intersectObjects(getMeshes(),false);
+    if(hits.length)addPt(liftedHitPoint(hits[0]),e.clientX,e.clientY);
+    return;
+  }
+  if(tool==='e'){
+    rc.setFromCamera(ndc,camera);
+    const hits=rc.intersectObjects(mSpheres,false);
+    if(hits.length){
+      const idx=mSpheres.indexOf(hits[0].object);
+      mGroup.remove(mSpheres[idx]);mSpheres.splice(idx,1);mPts.splice(idx,1);
+      mClosed=false;recolor();updLine();setInfo(`Bodov: ${mPts.length}`);return;
+    }
+    return;
+  }
+});
+
+cv.addEventListener('wheel',e=>{if(camera)camera.position.z*=1+e.deltaY*.001;},{passive:true});
+cv.addEventListener('touchstart',e=>{if(e.touches.length===1){isRotDrag=true;lx=e.touches[0].clientX;ly=e.touches[0].clientY;moved=false;}},{passive:true});
+cv.addEventListener('touchmove',e=>{if(!isRotDrag||!pivot||e.touches.length!==1)return;const dx=e.touches[0].clientX-lx,dy=e.touches[0].clientY-ly;lx=e.touches[0].clientX;ly=e.touches[0].clientY;if(Math.abs(dx)+Math.abs(dy)>2)moved=true;pivot.rotation.y+=dx*.01;pivot.rotation.x+=dy*.01;pivot.updateMatrixWorld(true);},{passive:true});
+cv.addEventListener('touchend',()=>{isRotDrag=false;},{passive:true});
+
+window.addEventListener('keydown',e=>{
+  if((tool==='d'||tool==='e')&&e.key==='Backspace'&&mPts.length){
+    e.preventDefault();mGroup.remove(mSpheres.pop());mPts.pop();mClosed=false;recolor();updLine();
+    setInfo(`Bodov: ${mPts.length}`);
+  }
+  if(e.key==='Enter'&&tool==='d')closeLine();
+  if(e.key==='Escape'){ if(document.getElementById('warn-modal').classList.contains('show')) closeWarnModal(); else setTool('r'); }
+});
+
+document.getElementById('warn-modal').addEventListener('click',e=>{ if(e.target.id==='warn-modal') closeWarnModal(); });
+window.addEventListener('beforeunload', function(e){
+  if(!hasWorkInProgress()) return;
+  e.preventDefault();
+  e.returnValue='';
+});
+
+// ── View shortcuts ─────────────────────────────────────────────────────
+document.getElementById('bf').onclick=()=>{if(!pivot)return;pivot.rotation.set(0,0,0);camera.position.set(0,0,sc*1.8);camera.lookAt(0,0,0);};
+document.getElementById('bt').onclick=()=>{if(!pivot)return;pivot.rotation.set(0,0,0);camera.position.set(0,sc*1.8,.01);camera.lookAt(0,0,0);};
+document.getElementById('bs').onclick=()=>{if(!pivot)return;pivot.rotation.set(0,0,0);camera.position.set(sc*1.8,0,0);camera.lookAt(0,0,0);};
+document.getElementById('br').onclick=()=>{if(!pivot)return;pivot.rotation.set(0,0,0);fitCam();};
+setStep(1);
+</script>
+</body>
+</html>
