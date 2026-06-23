@@ -26,12 +26,39 @@ This machine currently does not have the C++/Emscripten toolchain installed, so 
 3. Run it manually or push to the branch.
 4. Download the artifact containing `cgal-splint.js` and `cgal-splint.wasm`.
 
-Local build later, on a machine with Emscripten and CGAL available:
+Local build later, on a machine with Emscripten and CGAL headers available:
 
 ```powershell
-emcmake cmake -S cgal-wasm -B build-cgal-wasm -DCMAKE_BUILD_TYPE=Release
+emcmake cmake -S cgal-wasm -B build-cgal-wasm -DCMAKE_BUILD_TYPE=Release -DCGAL_INCLUDE_DIR=C:\path\to\cgal\include
 cmake --build build-cgal-wasm --config Release
 ```
+
+## GitHub web steps for first-time use
+
+If you do not use Git locally yet, upload these paths through the GitHub website:
+
+- `splint-v6.html`
+- `cgal-wasm/CMakeLists.txt`
+- `cgal-wasm/src/cgal_splint.cpp`
+- `cgal-wasm/js/cgal-splint-client.js`
+- `cgal-wasm/README.md`
+- `.github/workflows/cgal-wasm.yml`
+
+For the workflow file, GitHub must see the exact path `.github/workflows/cgal-wasm.yml`.
+If the `Actions` tab does not show `CGAL WASM`, this file is missing or in the wrong folder.
+
+After upload:
+
+1. Open the repository on GitHub.
+2. Click `Actions`.
+3. If GitHub asks, enable workflows for the repository.
+4. Click `CGAL WASM`.
+5. Click `Run workflow`.
+6. Wait until the run is green.
+7. Open the finished run and download the artifact named `cgal-splint-wasm`.
+8. Extract `cgal-splint.js` and `cgal-splint.wasm`.
+
+If the run is red, open it, click the failed step, and copy the error log. The first CGAL WASM build may need one or two dependency adjustments.
 
 ## License note
 
