@@ -5,6 +5,7 @@
 #include <CGAL/AABB_tree.h>
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Polygon_mesh_processing/repair.h>
+#include <CGAL/Polygon_mesh_processing/stitch_borders.h>
 #include <CGAL/Surface_mesh.h>
 
 #include <exception>
