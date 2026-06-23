@@ -29,7 +29,7 @@ This machine currently does not have the C++/Emscripten toolchain installed, so 
 Local build later, on a machine with Emscripten and CGAL headers available:
 
 ```powershell
-emcmake cmake -S cgal-wasm -B build-cgal-wasm -DCMAKE_BUILD_TYPE=Release -DCGAL_INCLUDE_DIR=C:\path\to\cgal\include
+emcmake cmake -S cgal-wasm -B build-cgal-wasm -DCMAKE_BUILD_TYPE=Release -DCGAL_ROOT=C:\path\to\cgal
 cmake --build build-cgal-wasm --config Release
 ```
 
