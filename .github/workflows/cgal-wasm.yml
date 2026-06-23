@@ -1,0 +1,40 @@
+name: CGAL WASM
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "cgal-wasm/**"
+      - ".github/workflows/cgal-wasm.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: latest
+
+      - name: Install CGAL build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcgal-dev libboost-all-dev
+
+      - name: Configure
+        run: emcmake cmake -S cgal-wasm -B build-cgal-wasm -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build-cgal-wasm --config Release --parallel 2
+
+      - name: Upload WASM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cgal-splint-wasm
+          path: |
+            build-cgal-wasm/dist/cgal-splint.js
+            build-cgal-wasm/dist/cgal-splint.wasm
