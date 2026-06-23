@@ -32,7 +32,7 @@ jobs:
           tar -xzf cgal.tar.gz --strip-components=1 -C cgal-src
 
       - name: Configure
-        run: emcmake cmake -S cgal-wasm -B build-cgal-wasm -DCMAKE_BUILD_TYPE=Release -DCGAL_ROOT="$GITHUB_WORKSPACE/cgal-src"
+        run: emcmake cmake -S cgal-wasm -B build-cgal-wasm -DCMAKE_BUILD_TYPE=Release -DCGAL_ROOT="$GITHUB_WORKSPACE/cgal-src" -DBOOST_INCLUDE_DIR=/usr/include
 
       - name: Build
         run: cmake --build build-cgal-wasm --config Release --parallel 2
