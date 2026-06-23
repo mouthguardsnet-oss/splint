@@ -33,6 +33,10 @@ emcmake cmake -S cgal-wasm -B build-cgal-wasm -DCMAKE_BUILD_TYPE=Release -DCGAL_
 cmake --build build-cgal-wasm --config Release
 ```
 
+For Emscripten, do not pass a full system include path such as `/usr/include`.
+That can make the compiler pick native Linux C/C++ headers instead of Emscripten's sysroot headers.
+Use a copied/downloaded Boost header folder instead, where the folder contains `boost/config.hpp`.
+
 ## GitHub web steps for first-time use
 
 If you do not use Git locally yet, upload these paths through the GitHub website:
