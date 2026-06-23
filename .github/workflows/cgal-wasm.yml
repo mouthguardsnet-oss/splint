@@ -20,13 +20,19 @@ jobs:
         with:
           version: latest
 
-      - name: Install CGAL build dependencies
+      - name: Install header dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libcgal-dev libboost-all-dev
+          sudo apt-get install -y libboost-dev
+
+      - name: Download CGAL headers
+        run: |
+          curl -L https://github.com/CGAL/cgal/archive/refs/tags/v6.2.tar.gz -o cgal.tar.gz
+          mkdir cgal-src
+          tar -xzf cgal.tar.gz --strip-components=1 -C cgal-src
 
       - name: Configure
-        run: emcmake cmake -S cgal-wasm -B build-cgal-wasm -DCMAKE_BUILD_TYPE=Release
+        run: emcmake cmake -S cgal-wasm -B build-cgal-wasm -DCMAKE_BUILD_TYPE=Release -DCGAL_INCLUDE_DIR="$GITHUB_WORKSPACE/cgal-src/include"
 
       - name: Build
         run: cmake --build build-cgal-wasm --config Release --parallel 2
