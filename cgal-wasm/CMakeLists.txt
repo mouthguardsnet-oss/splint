@@ -9,13 +9,20 @@ if(NOT DEFINED CGAL_ROOT)
   message(FATAL_ERROR "Set CGAL_ROOT to the unpacked CGAL source directory.")
 endif()
 
+if(NOT DEFINED BOOST_INCLUDE_DIR)
+  message(FATAL_ERROR "Set BOOST_INCLUDE_DIR to the Boost headers directory.")
+endif()
+
 file(GLOB CGAL_PACKAGE_INCLUDE_DIRS CONFIGURE_DEPENDS "${CGAL_ROOT}/*/include")
 if(NOT CGAL_PACKAGE_INCLUDE_DIRS)
   message(FATAL_ERROR "No CGAL package include directories found in CGAL_ROOT=${CGAL_ROOT}")
 endif()
 
 add_executable(cgal_splint src/cgal_splint.cpp)
-target_include_directories(cgal_splint PRIVATE ${CGAL_PACKAGE_INCLUDE_DIRS})
+target_include_directories(cgal_splint PRIVATE
+  "${BOOST_INCLUDE_DIR}"
+  ${CGAL_PACKAGE_INCLUDE_DIRS}
+)
 
 target_compile_definitions(cgal_splint PRIVATE
   CGAL_HEADER_ONLY=1
