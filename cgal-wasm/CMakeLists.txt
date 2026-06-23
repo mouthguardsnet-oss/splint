@@ -5,12 +5,17 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-if(NOT DEFINED CGAL_INCLUDE_DIR)
-  message(FATAL_ERROR "Set CGAL_INCLUDE_DIR to the CGAL source include directory.")
+if(NOT DEFINED CGAL_ROOT)
+  message(FATAL_ERROR "Set CGAL_ROOT to the unpacked CGAL source directory.")
+endif()
+
+file(GLOB CGAL_PACKAGE_INCLUDE_DIRS CONFIGURE_DEPENDS "${CGAL_ROOT}/*/include")
+if(NOT CGAL_PACKAGE_INCLUDE_DIRS)
+  message(FATAL_ERROR "No CGAL package include directories found in CGAL_ROOT=${CGAL_ROOT}")
 endif()
 
 add_executable(cgal_splint src/cgal_splint.cpp)
-target_include_directories(cgal_splint PRIVATE "${CGAL_INCLUDE_DIR}")
+target_include_directories(cgal_splint PRIVATE ${CGAL_PACKAGE_INCLUDE_DIRS})
 
 target_compile_definitions(cgal_splint PRIVATE
   CGAL_HEADER_ONLY=1
