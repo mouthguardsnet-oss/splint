@@ -23,6 +23,7 @@ set(CGAL_PACKAGE_NAMES
   Kernel_23
   Number_types
   Polygon_mesh_processing
+  Property_map
   Polyhedron
   Surface_mesh
   Spatial_searching
