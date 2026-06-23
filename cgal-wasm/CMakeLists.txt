@@ -47,7 +47,7 @@ if(EMSCRIPTEN)
     "SHELL:-s ENVIRONMENT=web,worker"
     "SHELL:-s ALLOW_MEMORY_GROWTH=1"
     "SHELL:-s MAXIMUM_MEMORY=2147483648"
-    "SHELL:-s EXPORTED_FUNCTIONS=['_malloc','_free','_cgal_process','_cgal_get_projected_ptr','_cgal_get_projected_count','_cgal_get_report_ptr','_cgal_get_border_halfedge_count','_cgal_get_invalid_face_count','_cgal_get_self_intersection_count']"
+    "SHELL:-s EXPORTED_FUNCTIONS=['_malloc','_free','_cgal_process','_cgal_generate_splint','_cgal_get_projected_ptr','_cgal_get_projected_count','_cgal_get_generated_positions_ptr','_cgal_get_generated_positions_count','_cgal_get_report_ptr','_cgal_get_border_halfedge_count','_cgal_get_invalid_face_count','_cgal_get_self_intersection_count']"
     "SHELL:-s EXPORTED_RUNTIME_METHODS=['HEAPF64','HEAPU32','UTF8ToString']"
   )
 endif()
