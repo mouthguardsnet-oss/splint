@@ -13,31 +13,8 @@ if(NOT DEFINED BOOST_INCLUDE_DIR)
   message(FATAL_ERROR "Set BOOST_INCLUDE_DIR to the Boost headers directory.")
 endif()
 
-set(CGAL_PACKAGE_NAMES
-  AABB_tree
-  BGL
-  Bounding_volumes
-  STL_Extension
-  Stream_support
-  Installation
-  Kernel_23
-  Number_types
-  Polygon_mesh_processing
-  Property_map
-  Polyhedron
-  Surface_mesh
-  Spatial_searching
-)
-
-set(CGAL_PACKAGE_INCLUDE_DIRS)
-foreach(CGAL_PACKAGE_NAME IN LISTS CGAL_PACKAGE_NAMES)
-  set(CGAL_PACKAGE_INCLUDE_DIR "${CGAL_ROOT}/${CGAL_PACKAGE_NAME}/include")
-  if(EXISTS "${CGAL_PACKAGE_INCLUDE_DIR}")
-    list(APPEND CGAL_PACKAGE_INCLUDE_DIRS "${CGAL_PACKAGE_INCLUDE_DIR}")
-  else()
-    message(WARNING "CGAL package include directory not found: ${CGAL_PACKAGE_INCLUDE_DIR}")
-  endif()
-endforeach()
+file(GLOB CGAL_PACKAGE_INCLUDE_DIRS CONFIGURE_DEPENDS "${CGAL_ROOT}/*/include")
+list(FILTER CGAL_PACKAGE_INCLUDE_DIRS EXCLUDE REGEX "/CGAL_Core/include$")
 
 if(NOT CGAL_PACKAGE_INCLUDE_DIRS)
   message(FATAL_ERROR "No CGAL package include directories found in CGAL_ROOT=${CGAL_ROOT}")
